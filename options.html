@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Unfollowers - Options</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: #fff;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #00ffff;
+    }
+    .section {
+      background: #222;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #00ffff;
+      font-size: 18px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      min-width: 350px;
+    }
+    .form-group input {
+      width: 100px;
+      padding: 8px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #111;
+      color: #fff;
+      font-size: 14px;
+    }
+    .form-group .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group .unit {
+      color: #999;
+      font-size: 14px;
+    }
+    .warning {
+      background: #ff0;
+      color: #000;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .warning b {
+      color: red;
+    }
+    .btn-container {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #fff;
+      background-color: gray;
+      width: 100px;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #313131;
+    }
+    button.primary {
+      background: #00ffff;
+      color: #000;
+    }
+    button.primary:hover {
+      background: #00cccc;
+    }
+    .success {
+      background: #56d756;
+      color: #000;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+    }
+    .success.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Instagram Unfollowers - Settings</h1>
+  </div>
+
+  <div class="warning">
+    <b>WARNING:</b> Modifying these settings can lead to your account being banned.
+    <br><b>USE IT AT YOUR OWN RISK!!!!</b>
+  </div>
+
+  <form id="settingsForm">
+    <div class="section">
+      <h2>Search Cycle Settings</h2>
+      
+      <div class="form-group">
+        <div class="row">
+          <label for="timeBetweenSearchCycles">Default time between search cycles</label>
+          <input type="number" id="timeBetweenSearchCycles" name="timeBetweenSearchCycles" min="500" max="999999" required>
+          <span class="unit">(ms)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="row">
+          <label for="timeToWaitAfterFiveSearchCycles">Default time to wait after five search cycles</label>
+          <input type="number" id="timeToWaitAfterFiveSearchCycles" name="timeToWaitAfterFiveSearchCycles" min="4000" max="999999" required>
+          <span class="unit">(ms)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Unfollow Settings</h2>
+      
+      <div class="form-group">
+        <div class="row">
+          <label for="timeBetweenUnfollows">Default time between unfollows</label>
+          <input type="number" id="timeBetweenUnfollows" name="timeBetweenUnfollows" min="1000" max="999999" required>
+          <span class="unit">(ms)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="row">
+          <label for="timeToWaitAfterFiveUnfollows">Default time to wait after five unfollows</label>
+          <input type="number" id="timeToWaitAfterFiveUnfollows" name="timeToWaitAfterFiveUnfollows" min="70000" max="999999" required>
+          <span class="unit">(ms)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-container">
+      <button type="button" id="cancelBtn">Cancel</button>
+      <button type="submit" class="primary" id="saveBtn">Save</button>
+    </div>
+
+    <div class="success" id="successMessage">
+      Settings saved successfully!
+    </div>
+  </form>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
+

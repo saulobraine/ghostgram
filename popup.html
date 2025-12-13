@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Instagram Unfollowers</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 20px;
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        background: #111;
+        color: #fff;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 18px;
+        color: #00ffff;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        text-align: center;
+        background: #222;
+      }
+      .status.active {
+        background: #56d756;
+        color: #000;
+      }
+      .status.inactive {
+        background: #ac2626;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        background: #222;
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #333;
+      }
+      button.primary {
+        background: #00ffff;
+        color: #000;
+      }
+      button.primary:hover {
+        background: #00cccc;
+      }
+      .link {
+        text-align: center;
+        margin-top: 15px;
+      }
+      .link a {
+        color: #00ffff;
+        text-decoration: none;
+        font-size: 12px;
+      }
+      .link a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Instagram Unfollowers</h1>
+    </div>
+
+    <div id="status" class="status inactive">Checking status...</div>
+
+    <button id="toggleBtn" class="primary">Enable Extension</button>
+    <button id="startScanBtn" class="primary" style="display: none">
+      Iniciar Scan
+    </button>
+    <button id="optionsBtn">Options</button>
+
+    <div class="link">
+      <a href="#" id="openOptions">Open Options Page</a>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
