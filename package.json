@@ -1,0 +1,30 @@
+{
+  "name": "instagram-unfollowers-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for Instagram unfollowers",
+  "type": "module",
+  "scripts": {
+    "icons": "node scripts/generate-icons-simple.js",
+    "icons:png": "node scripts/generate-icons.js",
+    "icons:convert": "node scripts/convert-icons-to-png.js",
+    "build": "node scripts/build-simple.js",
+    "build:zip": "node scripts/build.js",
+    "clean": "node -e \"import('fs').then(fs => { const path = './build'; if (fs.existsSync(path)) fs.rmSync(path, {recursive: true}); console.log('Build directory cleaned'); })\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration",
+    "test:performance": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/performance",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e",
+    "test:snapshot": "node --experimental-vm-modules node_modules/jest/bin/jest.js --updateSnapshot tests/unit/domain"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "archiver": "^7.0.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "puppeteer": "^24.15.0",
+    "sharp": "^0.34.5"
+  }
+}
