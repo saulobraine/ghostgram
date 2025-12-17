@@ -1,0 +1,43 @@
+{
+  "floatingPanel": {
+    "title": "GhostGram",
+    "startScan": "Iniciar Scan",
+    "scanning": "Escaneando...",
+    "unfollowing": "Deixando de seguir...",
+    "usersFound": "Usuários encontrados",
+    "usersSelected": "Usuários selecionados",
+    "copyList": "Copiar Lista",
+    "expand": "Expandir",
+    "collapse": "Colapsar",
+    "extensionDisabled": "Extensão desabilitada",
+    "extensionEnabled": "Extensão habilitada",
+    "noUsersFound": "Nenhum usuário encontrado",
+    "percentage": "{{percentage}}%",
+    "pause": "Pausar",
+    "resume": "Retomar"
+  },
+  "options": {
+    "title": "GhostGram - Configurações",
+    "sections": {
+      "searchCycle": "Configurações de Ciclo de Busca",
+      "unfollow": "Configurações de Deixar de Seguir"
+    },
+    "fields": {
+      "timeBetweenSearchCycles": "Tempo padrão entre ciclos de busca",
+      "timeToWaitAfterFiveSearchCycles": "Tempo padrão para aguardar após cinco ciclos de busca",
+      "timeBetweenUnfollows": "Tempo padrão entre deixar de seguir",
+      "timeToWaitAfterFiveUnfollows": "Tempo padrão para aguardar após deixar de seguir cinco usuários"
+    },
+    "warning": {
+      "title": "AVISO:",
+      "message": "Modificar essas configurações pode levar ao banimento da sua conta.",
+      "risk": "USE POR SUA CONTA E RISCO!!!!"
+    },
+    "buttons": {
+      "save": "Salvar",
+      "cancel": "Cancelar"
+    },
+    "success": "Configurações salvas com sucesso!",
+    "unit": "(ms)"
+  }
+}

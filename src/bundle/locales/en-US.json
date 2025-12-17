@@ -1,0 +1,43 @@
+{
+  "floatingPanel": {
+    "title": "GhostGram",
+    "startScan": "Start Scan",
+    "scanning": "Scanning...",
+    "unfollowing": "Unfollowing...",
+    "usersFound": "Users found",
+    "usersSelected": "Users selected",
+    "copyList": "Copy List",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "extensionDisabled": "Extension disabled",
+    "extensionEnabled": "Extension enabled",
+    "noUsersFound": "No users found",
+    "percentage": "{{percentage}}%",
+    "pause": "Pause",
+    "resume": "Resume"
+  },
+  "options": {
+    "title": "GhostGram - Settings",
+    "sections": {
+      "searchCycle": "Search Cycle Settings",
+      "unfollow": "Unfollow Settings"
+    },
+    "fields": {
+      "timeBetweenSearchCycles": "Default time between search cycles",
+      "timeToWaitAfterFiveSearchCycles": "Default time to wait after five search cycles",
+      "timeBetweenUnfollows": "Default time between unfollows",
+      "timeToWaitAfterFiveUnfollows": "Default time to wait after five unfollows"
+    },
+    "warning": {
+      "title": "WARNING:",
+      "message": "Modifying these settings can lead to your account being banned.",
+      "risk": "USE IT AT YOUR OWN RISK!!!!"
+    },
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "success": "Settings saved successfully!",
+    "unit": "(ms)"
+  }
+}
