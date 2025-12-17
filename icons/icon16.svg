@@ -1,31 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<svg width="16" height="16" viewBox="1 1 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad16" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#E4405F;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#833AB4;stop-opacity:1" />
+    <linearGradient id="ghostGrad16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#833AB4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#E1306C;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#FCAF45;stop-opacity:1" />
     </linearGradient>
   </defs>
-  
-  <!-- Background with rounded corners -->
-  <rect width="16" height="16" fill="url(#grad16)" rx="1.6"/>
-  
-  <!-- Camera body (outer circle) -->
-  <circle cx="8" cy="8" r="4.8" fill="#FFFFFF" opacity="0.95"/>
-  
-  <!-- Camera lens (middle circle) -->
-  <circle cx="8" cy="8" r="2.88" fill="url(#grad16)"/>
-  
-  <!-- Center dot -->
-  <circle cx="8" cy="8" r="1.44" fill="#FFFFFF"/>
-  
-  <!-- Optional: Add "U" for Unfollowers -->
-  <text x="8" y="10.4" 
-        font-family="Arial, sans-serif" 
-        font-size="4" 
-        font-weight="bold"
-        fill="#FFFFFF" 
-        text-anchor="middle" 
-        opacity="0.8">U</text>
+  <!-- Ghost body -->
+  <path
+    d="M8 2C5.5 2 3.5 3.5 3.5 6.5C3.5 7.5 4 8.5 4.5 9.5L4.5 12.5C4.5 13 5 13.5 5.5 13.5C6 13.5 6.5 13.2 6.7 12.8L7.5 11.5C7.8 11.2 8.2 11.2 8.5 11.5L9.3 12.8C9.5 13.2 10 13.5 10.5 13.5C11 13.5 11.5 13 11.5 12.5L11.5 9.5C12 8.5 12.5 7.5 12.5 6.5C12.5 3.5 10.5 2 8 2Z"
+    fill="url(#ghostGrad16)" />
+  <!-- Left eye -->
+  <circle cx="6" cy="6" r="1" fill="#FFFFFF" />
+  <!-- Right eye -->
+  <circle cx="10" cy="6" r="1" fill="#FFFFFF" />
 </svg>

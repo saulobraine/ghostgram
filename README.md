@@ -1,4 +1,4 @@
-# Instagram Unfollowers Chrome Extension
+# GhostGram - Chrome Extension
 
 ## Setup Instructions
 
