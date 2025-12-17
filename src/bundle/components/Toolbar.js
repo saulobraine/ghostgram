@@ -1,5 +1,10 @@
 // Toolbar - Presentation component
-import React from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing Toolbar');
+}
+
+const React = window.React;
 import { Logo } from './Logo.js';
 import { SettingIcon } from './SettingIcon.js';
 import { SettingMenu } from './SettingMenu.js';
@@ -9,6 +14,7 @@ export function Toolbar({
   isActiveProcess,
   onLogoClick,
   onCopyList,
+  onViewUsers,
   onSearchChange,
   onToggleAllUsers,
   onToggleCurrentPageUsers,
@@ -33,9 +39,18 @@ export function Toolbar({
             <span>Unfollowers</span>
           </div>
         </div>
-        <button className="copy-list" onClick={onCopyList} disabled={state.status.isInitial()}>
+        <button 
+          className="copy-list" 
+          onClick={onCopyList} 
+          disabled={!state.status.isPaused() && !state.status.isCompleted()}
+        >
           Copy List
         </button>
+        {(state.status.isPaused() || state.status.isCompleted()) && onViewUsers && (
+          <button className="view-users" onClick={onViewUsers}>
+            Ver usuários
+          </button>
+        )}
         {state.status.isInitial() && <SettingIcon onClick={onSettingsClick} />}
         <input
           type="text"

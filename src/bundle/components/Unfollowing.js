@@ -1,7 +1,12 @@
 // Unfollowing - Presentation component
-import React from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing Unfollowing');
+}
 
-export function Unfollowing({ state, onFilterChange, filteredLog }) {
+const React = window.React;
+
+export function Unfollowing({ state, onFilterChange, filteredLog, onPause, onResume, isPaused }) {
   if (!state.status.isUnfollowing()) {
     return null;
   }
@@ -32,6 +37,13 @@ export function Unfollowing({ state, onFilterChange, filteredLog }) {
             {' '}Failed
           </label>
         </menu>
+        {!isComplete && (
+          <div className="controls">
+            <button className="button-control button-pause" onClick={isPaused ? onResume : onPause}>
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
+          </div>
+        )}
       </aside>
       <article className="unfollow-log-container">
         {isComplete && (

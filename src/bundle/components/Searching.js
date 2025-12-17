@@ -1,12 +1,14 @@
 // Searching - Presentation component (simplified, will be enhanced in App)
-export function Searching({ 
-  state, 
-  onFilterChange, 
-  onToggleUser, 
-  onPause, 
-  onResume, 
-  onPageChange, 
+export function Searching({
+  state,
+  onFilterChange,
+  onToggleUser,
+  onPause,
+  onResume,
+  onPageChange,
   onUnfollow,
+  onTabChange,
+  onWhitelistToggle,
   isPaused,
   filteredUsers,
   currentPageUsers,
@@ -14,7 +16,12 @@ export function Searching({
   UserCheckIcon,
   UserUncheckIcon
 }) {
-  if (!state.status.isScanning()) {
+  const isScanning = state.status.isScanning();
+  const isPausedState = state.status.isPaused();
+  const isCompleted = state.status.isCompleted();
+
+  // Only render if in valid state
+  if (!isScanning && !isPausedState && !isCompleted) {
     return null;
   }
 
@@ -73,11 +80,13 @@ export function Searching({
           <p>Displayed: {filteredUsers.length}</p>
           <p>Total: {state.results.length}</p>
         </div>
-        <div className="controls">
-          <button className="button-control button-pause" onClick={isPaused ? onResume : onPause}>
-            {isPaused ? 'Resume' : 'Pause'}
-          </button>
-        </div>
+        {!isCompleted && (
+          <div className="controls">
+            <button className="button-control button-pause" onClick={isPaused || isPausedState ? onResume : onPause}>
+              {isPaused || isPausedState ? 'Resume' : 'Pause'}
+            </button>
+          </div>
+        )}
         <div className="grow t-center">
           <p>Pages</p>
           <a onClick={() => state.page > 1 && onPageChange(state.page - 1)} className="p-medium">
@@ -115,14 +124,14 @@ export function Searching({
 
 function renderUsers(users, state, onToggleUser, onTabChange, onWhitelistToggle, UserCheckIcon, UserUncheckIcon) {
   let lastInitial = '';
-  
+
   return users.map(user => {
     const initial = user.getUsername().substring(0, 1).toUpperCase();
     const showInitial = initial !== lastInitial;
     lastInitial = initial;
-    
+
     const isSelected = state.selectedResults.some(u => u.equals(user));
-    
+
     return (
       <React.Fragment key={user.getId()}>
         {showInitial && <div className="alphabet-character">{initial}</div>}

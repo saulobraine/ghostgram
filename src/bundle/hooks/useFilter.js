@@ -1,5 +1,10 @@
 // useFilter - Custom hook for filter management
-import { useState } from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing useFilter');
+}
+
+const { useState } = window.React;
 import { Filter } from '../domain/Filter.js';
 
 export function useFilter() {

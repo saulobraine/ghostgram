@@ -2,7 +2,9 @@
 export const INSTAGRAM_HOSTNAME = 'www.instagram.com';
 export const STORAGE_KEYS = {
   ENABLED: 'enabled',
-  WHITELISTED_RESULTS: 'iu_whitelisted-results'
+  WHITELISTED_RESULTS: 'iu_whitelisted-results',
+  FLOATING_PANEL_EXPANDED: 'floatingPanelExpanded',
+  SCAN_STATE: 'scanState'
 };
 
 export const MESSAGE_ACTIONS = {
@@ -27,6 +29,7 @@ export const SETTINGS_KEYS = {
 };
 
 export const BUNDLE_SCRIPT_NAME = 'bundle.js';
+export const FLOATING_PANEL_APP_SCRIPT_NAME = 'floating-panel-app.js';
 export const SUCCESS_MESSAGE_DURATION = 3000;
 
 // Bundle constants

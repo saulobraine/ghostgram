@@ -1,5 +1,10 @@
 // useWhitelist - Custom hook for whitelist management
-import { useState, useEffect } from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing useWhitelist');
+}
+
+const { useState, useEffect } = window.React;
 import { Whitelist } from '../domain/Whitelist.js';
 import { WhitelistRepository } from '../storage/WhitelistRepository.js';
 import { LocalStorageAdapter } from '../../storage/LocalStorageAdapter.js';

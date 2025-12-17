@@ -1,8 +1,10 @@
 // App - Main application component
-// Note: This uses Preact (from the minified bundle), not React
-// The bundle.js will provide React/Preact via global or import
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing App');
+}
 
-import { useState, useEffect, useCallback } from 'react';
+const { useState, useEffect, useCallback } = window.React;
 import { ScanState } from './domain/ScanState.js';
 import { Filter } from './domain/Filter.js';
 import { Settings } from '../../domain/Settings.js';
@@ -19,15 +21,22 @@ import { Searching } from './components/Searching.js';
 import { Unfollowing } from './components/Unfollowing.js';
 import { Toolbar } from './components/Toolbar.js';
 import { Toast } from './components/Toast.js';
+import { FloatingPanel } from './components/FloatingPanel.js';
 import { UserCheckIcon } from './components/UserCheckIcon.js';
 import { UserUncheckIcon } from './components/UserUncheckIcon.js';
+import { UsersPopup } from './components/UsersPopup.js';
 import { SyncStorageAdapter } from '../../storage/SyncStorageAdapter.js';
+import { LocalStorageAdapter } from '../../storage/LocalStorageAdapter.js';
+import { ExtensionState } from '../../domain/ExtensionState.js';
+import { STORAGE_KEYS } from '../../constants/Constants.js';
+import { useFloatingPanel } from './hooks/useFloatingPanel.js';
 
 export function App() {
   const scanning = useScanning();
   const unfollowing = useUnfollowing();
   const whitelist = useWhitelist();
   const filter = useFilter();
+  const { isExpanded, toggle: toggleFloatingPanel } = useFloatingPanel(false);
 
   const [currentTab, setCurrentTab] = useState('non_whitelisted');
   const [page, setPage] = useState(1);
@@ -36,10 +45,34 @@ export function App() {
   const [toast, setToast] = useState({ show: false, message: '', style: 'info' });
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState(Settings.createDefault());
+  const [extensionEnabled, setExtensionEnabled] = useState(true);
+  const [showUsersPopup, setShowUsersPopup] = useState(false);
 
   useEffect(() => {
     loadSettings();
+    loadExtensionState();
+
+    // Listen for storage changes to update extension state
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes[STORAGE_KEYS.ENABLED]) {
+        const state = ExtensionState.fromStorageValue(changes[STORAGE_KEYS.ENABLED].newValue);
+        setExtensionEnabled(state.isEnabled());
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
   }, []);
+
+  async function loadExtensionState() {
+    const adapter = new LocalStorageAdapter();
+    const value = await adapter.get(STORAGE_KEYS.ENABLED);
+    const state = ExtensionState.fromStorageValue(value);
+    setExtensionEnabled(state.isEnabled());
+  }
 
   function handleStartScan() {
     scanning.start();
@@ -100,8 +133,10 @@ export function App() {
     showToast('List copied to clipboard!', 'success');
   }
 
-  function handleUnfollow() {
-    if (selectedResults.length === 0) {
+  function handleUnfollow(usersToUnfollow = null) {
+    const users = usersToUnfollow || selectedResults;
+    
+    if (users.length === 0) {
       alert('Must select at least a single user to unfollow');
       return;
     }
@@ -113,10 +148,10 @@ export function App() {
     scanning.setState(prev => ({
       ...prev,
       status: ScanState.createUnfollowing(),
-      selectedResultsCount: selectedResults.length
+      selectedResultsCount: users.length
     }));
 
-    unfollowing.execute(selectedResults);
+    unfollowing.execute(users);
   }
 
   function getFilteredUsers() {
@@ -256,6 +291,7 @@ export function App() {
           isActiveProcess={isActiveProcess}
           onLogoClick={handleLogoClick}
           onCopyList={handleCopyList}
+          onViewUsers={() => setShowUsersPopup(true)}
           onSearchChange={setSearchTerm}
           onToggleAllUsers={(e) => handleToggleAllUsers(e.target.checked)}
           onToggleCurrentPageUsers={(e) => handleToggleCurrentPageUsers(e.target.checked)}
@@ -277,15 +313,42 @@ export function App() {
           />
         )}
       </section>
+      <FloatingPanel
+        isExpanded={isExpanded}
+        onToggle={toggleFloatingPanel}
+        scanningState={scanning.state}
+        unfollowingState={unfollowing.state}
+        extensionEnabled={extensionEnabled}
+        onStartScan={handleStartScan}
+        onCopyList={handleCopyList}
+        selectedResultsCount={selectedResults.length}
+      />
+      {showUsersPopup && (
+        <UsersPopup
+          isOpen={showUsersPopup}
+          users={getFilteredUsers()}
+          onClose={() => setShowUsersPopup(false)}
+          onUnfollow={handleUnfollow}
+          onWhitelistToggle={handleWhitelistToggle}
+          whitelist={whitelist.whitelist}
+        />
+      )}
     </main>
   );
 
   function renderContent() {
-    if (scanning.state.status.isInitial()) {
+    const hasResults = scanning.state.results.length > 0;
+    const isScanning = scanning.state.status.isScanning();
+    const isPaused = scanning.state.status.isPaused();
+    const isCompleted = scanning.state.status.isCompleted();
+
+    // Show NotSearching only if initial and no results
+    if (scanning.state.status.isInitial() && !hasResults) {
       return <NotSearching onScan={handleStartScan} />;
     }
 
-    if (scanning.state.status.isScanning()) {
+    // Show Searching if scanning, paused, or completed (with results)
+    if (isScanning || isPaused || isCompleted) {
       return (
         <Searching
           state={{
@@ -302,7 +365,7 @@ export function App() {
           onResume={scanning.resume}
           onPageChange={setPage}
           onUnfollow={handleUnfollow}
-          isPaused={scanning.isPaused}
+          isPaused={scanning.isPaused || isPaused}
           filteredUsers={getFilteredUsers()}
           currentPageUsers={getCurrentPageUsers()}
           maxPage={getMaxPage()}
@@ -330,6 +393,9 @@ export function App() {
             }));
           }}
           filteredLog={getUnfollowFilteredLog()}
+          onPause={unfollowing.pause}
+          onResume={unfollowing.resume}
+          isPaused={unfollowing.isPaused}
         />
       );
     }

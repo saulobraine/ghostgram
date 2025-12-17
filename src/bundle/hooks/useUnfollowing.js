@@ -1,5 +1,10 @@
 // useUnfollowing - Custom hook for unfollowing state management
-import { useState, useCallback, useRef } from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing useUnfollowing');
+}
+
+const { useState, useCallback, useRef } = window.React;
 import { ScanState } from '../domain/ScanState.js';
 import { UnfollowService } from '../services/UnfollowService.js';
 import { InstagramApiClient } from '../services/InstagramApiClient.js';
@@ -14,7 +19,7 @@ export function useUnfollowing() {
     searchTerm: '',
     filter: { showSucceeded: true, showFailed: true }
   });
-  
+
   const [isPaused, setIsPaused] = useState(false);
   const unfollowServiceRef = useRef(null);
 
@@ -31,16 +36,16 @@ export function useUnfollowing() {
     const apiClient = new InstagramApiClient();
     const unfollowService = new UnfollowService(apiClient, settings, handleProgress);
     unfollowServiceRef.current = unfollowService;
-    
+
     setState(prev => ({
       ...prev,
       status: ScanState.createUnfollowing(),
       percentage: 0,
       unfollowLog: []
     }));
-    
+
     setIsPaused(false);
-    
+
     try {
       const log = await unfollowService.execute(users);
       setState(prev => ({
@@ -86,11 +91,11 @@ export function useUnfollowing() {
   async function loadSettings() {
     const adapter = new SyncStorageAdapter();
     const data = await adapter.get('settings');
-    
+
     if (!data) {
       return Settings.createDefault();
     }
-    
+
     return Settings.fromObject(data);
   }
 

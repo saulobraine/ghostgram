@@ -17,12 +17,20 @@ export class ScanState {
     return new ScanState('unfollowing');
   }
 
+  static createPaused() {
+    return new ScanState('paused');
+  }
+
+  static createCompleted() {
+    return new ScanState('completed');
+  }
+
   static fromString(status) {
     return new ScanState(status);
   }
 
   _validate(status) {
-    const validStatuses = ['initial', 'scanning', 'unfollowing'];
+    const validStatuses = ['initial', 'scanning', 'unfollowing', 'paused', 'completed'];
     if (!validStatuses.includes(status)) {
       throw new Error(`Invalid scan state: ${status}`);
     }
@@ -38,6 +46,14 @@ export class ScanState {
 
   isUnfollowing() {
     return this._status === 'unfollowing';
+  }
+
+  isPaused() {
+    return this._status === 'paused';
+  }
+
+  isCompleted() {
+    return this._status === 'completed';
   }
 
   transitionTo(newStatus) {

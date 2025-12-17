@@ -1,5 +1,10 @@
 // SettingMenu - Presentation component
-import { useState } from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing SettingMenu');
+}
+
+const { useState } = window.React;
 import { Settings } from '../../domain/Settings.js';
 
 export function SettingMenu({ settings, onSave, onCancel }) {

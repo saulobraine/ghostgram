@@ -1,5 +1,10 @@
 // UserCheckIcon - Presentation component
-import React from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing UserCheckIcon');
+}
+
+const React = window.React;
 
 export function UserCheckIcon() {
   return (

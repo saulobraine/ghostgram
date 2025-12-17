@@ -1,5 +1,10 @@
 // UserUncheckIcon - Presentation component
-import React from 'react';
+// Note: React must be available on window.React
+if (!window.React) {
+  throw new Error('React must be loaded on window.React before importing UserUncheckIcon');
+}
+
+const React = window.React;
 
 export function UserUncheckIcon() {
   return (
