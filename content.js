@@ -10,7 +10,9 @@ console.log('[ContentScript] Chrome runtime ID:', chrome.runtime.id);
     const src = chrome.runtime.getURL('content-main.js');
     console.log('[ContentScript] Carregando módulo principal de:', src);
 
-    const contentMain = await import(src);
+    // Vite não consegue analisar imports dinâmicos com URL em runtime.
+    // Mantemos assim porque em extensão precisamos usar chrome.runtime.getURL().
+    const contentMain = await import(/* @vite-ignore */ src);
     console.log('[ContentScript] Módulo principal carregado com sucesso');
     console.log('[ContentScript] Exports disponíveis:', Object.keys(contentMain));
 
