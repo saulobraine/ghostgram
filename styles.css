@@ -1357,8 +1357,8 @@ html .iu button.unfollow {
 
 /* Painel expandido */
 .iu-floating-panel.iu-expanded {
-  bottom: 20px !important;
-  right: 20px !important;
+  bottom: 20px;
+  right: 20px;
 }
 
 .iu-content {
@@ -1415,6 +1415,30 @@ html .iu button.unfollow {
 .iu-subtitle {
   font-size: 11px !important;
   color: #888 !important;
+}
+
+.iu-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.iu-history-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  transition: background 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.iu-history-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .iu-minimize-btn {
@@ -1792,4 +1816,21 @@ html .iu button.unfollow {
 .iu-whitelist-info {
   font-size: 11px !important;
   color: #ffd700 !important;
+}
+
+/* Estilos para o Histórico no Perfil do Instagram */
+.ghostgram-profile-info {
+  animation: ghostgram-slide-up 0.3s ease-out !important;
+  z-index: 100 !important;
+}
+
+.ghostgram-profile-info strong {
+  color: #ff6b9d !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+@keyframes ghostgram-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

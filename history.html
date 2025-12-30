@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico GhostGram - Relatório Global</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #c44569;
+            padding-bottom: 15px;
+        }
+        h1 {
+            margin: 0;
+            color: #ff6b9d;
+            font-size: 24px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-clear {
+            background: #c44569;
+            color: white;
+        }
+        .btn-clear:hover {
+            background: #e04b7a;
+        }
+        .btn-refresh {
+            background: #333;
+            color: white;
+            border: 1px solid #444;
+        }
+        .btn-refresh:hover {
+            background: #444;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            text-align: left;
+            padding: 14px;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            color: #888;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .action-follow {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .action-unfollow {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .source-auto {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .source-manual {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        .username-link {
+            color: #ff6b9d;
+            text-decoration: none;
+        }
+        .username-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📜 Relatório de Histórico</h1>
+            <div class="controls">
+                <button class="btn-refresh" id="refreshBtn">Atualizar</button>
+                <button class="btn-clear" id="clearBtn">Limpar Tudo</button>
+            </div>
+        </header>
+
+        <div id="historyTableContainer">
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Usuário</th>
+                        <th>Ação</th>
+                        <th>Método</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <!-- Registros serão inseridos aqui -->
+                </tbody>
+            </table>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <p>Nenhum registro encontrado no histórico.</p>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="history.js"></script>
+</body>
+</html>
