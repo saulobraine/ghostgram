@@ -1,87 +1,112 @@
-// Logo - Presentation component (Vanilla JS)
+// Logo - Componente de apresentação (Vanilla JS)
 
+/**
+ * Cria o elemento SVG do logo do GhostGram
+ * @returns {SVGElement} Elemento SVG criado
+ */
 export function Logo() {
-  // Create SVG element using createElementNS for proper SVG rendering
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '32');
   svg.setAttribute('height', '32');
-  // Tighter viewBox so logo fills available space better
-  svg.setAttribute('viewBox', '26 14 76 76');
+  svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('fill', 'none');
 
-  // Create defs element
+  // Defs para gradiente
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-  // Create linearGradient
-  const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-  linearGradient.setAttribute('id', 'ghostGradLogo');
-  linearGradient.setAttribute('x1', '0%');
-  linearGradient.setAttribute('y1', '0%');
-  linearGradient.setAttribute('x2', '100%');
-  linearGradient.setAttribute('y2', '100%');
+  // Gradiente rosa/roxo/magenta
+  const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  gradient.setAttribute('id', 'ghostGrad');
+  gradient.setAttribute('x1', '0%');
+  gradient.setAttribute('y1', '0%');
+  gradient.setAttribute('x2', '100%');
+  gradient.setAttribute('y2', '100%');
 
   const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
   stop1.setAttribute('offset', '0%');
-  stop1.setAttribute('stop-color', '#833AB4');
-  stop1.setAttribute('stop-opacity', '1');
+  stop1.setAttribute('stop-color', '#ff6b9d');
 
   const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
   stop2.setAttribute('offset', '50%');
-  stop2.setAttribute('stop-color', '#E1306C');
-  stop2.setAttribute('stop-opacity', '1');
+  stop2.setAttribute('stop-color', '#c44569');
 
   const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
   stop3.setAttribute('offset', '100%');
-  stop3.setAttribute('stop-color', '#FCAF45');
-  stop3.setAttribute('stop-opacity', '1');
+  stop3.setAttribute('stop-color', '#6b5b95');
 
-  linearGradient.appendChild(stop1);
-  linearGradient.appendChild(stop2);
-  linearGradient.appendChild(stop3);
+  gradient.appendChild(stop1);
+  gradient.appendChild(stop2);
+  gradient.appendChild(stop3);
+  defs.appendChild(gradient);
 
-  // Create filter
+  // Glow filter
   const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-  filter.setAttribute('id', 'shadowLogo');
+  filter.setAttribute('id', 'glow');
+  filter.setAttribute('x', '-50%');
+  filter.setAttribute('y', '-50%');
+  filter.setAttribute('width', '200%');
+  filter.setAttribute('height', '200%');
 
-  const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
-  feDropShadow.setAttribute('dx', '0');
-  feDropShadow.setAttribute('dy', '4');
-  feDropShadow.setAttribute('stdDeviation', '4');
-  feDropShadow.setAttribute('flood-opacity', '0.3');
+  const feGaussianBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+  feGaussianBlur.setAttribute('stdDeviation', '3');
+  feGaussianBlur.setAttribute('result', 'coloredBlur');
 
-  filter.appendChild(feDropShadow);
-  defs.appendChild(linearGradient);
+  const feMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+  const feMergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+  feMergeNode1.setAttribute('in', 'coloredBlur');
+  const feMergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+  feMergeNode2.setAttribute('in', 'SourceGraphic');
+  feMerge.appendChild(feMergeNode1);
+  feMerge.appendChild(feMergeNode2);
+
+  filter.appendChild(feGaussianBlur);
+  filter.appendChild(feMerge);
   defs.appendChild(filter);
+
   svg.appendChild(defs);
 
-  // Create ghost body path
+  // Corpo do fantasma
   const ghostBody = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  ghostBody.setAttribute('d', 'M64 16C50 16 38 24 38 36C38 42 40 48 43 54L43 78C43 82 46 85 50 85C53 85 56 83.5 57.5 81.5L62 75C63.5 73.5 64.5 73.5 66 75L70.5 81.5C72 83.5 75 85 78 85C82 85 85 82 85 78L85 54C88 48 90 42 90 36C90 24 78 16 64 16Z');
-  ghostBody.setAttribute('fill', 'url(#ghostGradLogo)');
-  ghostBody.setAttribute('filter', 'url(#shadowLogo)');
+  ghostBody.setAttribute('d', 'M50 8 C25 8 12 28 12 48 L12 82 Q17 88 22 82 Q27 88 32 82 Q37 88 42 82 Q47 88 52 82 Q57 88 62 82 Q67 88 72 82 Q77 88 82 82 Q87 88 88 82 L88 48 C88 28 75 8 50 8 Z');
+  ghostBody.setAttribute('fill', 'url(#ghostGrad)');
+  ghostBody.setAttribute('filter', 'url(#glow)');
   svg.appendChild(ghostBody);
 
-  // Create wavy bottom effect
-  const wavyBottom = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  wavyBottom.setAttribute('d', 'M43 78 L43 85 Q45 87 47 85 Q49 87 51 85 Q53 87 55 85 Q57 87 59 85 Q61 87 63 85 Q65 87 67 85 Q69 87 71 85 Q73 87 75 85 Q77 87 79 85 Q81 87 83 85 L85 78 Z');
-  wavyBottom.setAttribute('fill', 'url(#ghostGradLogo)');
-  wavyBottom.setAttribute('opacity', '0.9');
-  svg.appendChild(wavyBottom);
+  // Olho esquerdo (fundo branco)
+  const leftEyeBg = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  leftEyeBg.setAttribute('cx', '35');
+  leftEyeBg.setAttribute('cy', '42');
+  leftEyeBg.setAttribute('rx', '10');
+  leftEyeBg.setAttribute('ry', '12');
+  leftEyeBg.setAttribute('fill', '#FFFFFF');
+  svg.appendChild(leftEyeBg);
 
-  // Eyes (simple white, no pupils/highlights)
-  const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  leftEye.setAttribute('cx', '48');
-  leftEye.setAttribute('cy', '42');
-  leftEye.setAttribute('r', '5.5');
-  leftEye.setAttribute('fill', '#FFFFFF');
-  svg.appendChild(leftEye);
+  // Pupila esquerda
+  const leftPupil = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  leftPupil.setAttribute('cx', '38');
+  leftPupil.setAttribute('cy', '45');
+  leftPupil.setAttribute('rx', '5');
+  leftPupil.setAttribute('ry', '6');
+  leftPupil.setAttribute('fill', '#1a1a2e');
+  svg.appendChild(leftPupil);
 
-  const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  rightEye.setAttribute('cx', '80');
-  rightEye.setAttribute('cy', '42');
-  rightEye.setAttribute('r', '5.5');
-  rightEye.setAttribute('fill', '#FFFFFF');
-  svg.appendChild(rightEye);
+  // Olho direito (fundo branco)
+  const rightEyeBg = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  rightEyeBg.setAttribute('cx', '65');
+  rightEyeBg.setAttribute('cy', '42');
+  rightEyeBg.setAttribute('rx', '10');
+  rightEyeBg.setAttribute('ry', '12');
+  rightEyeBg.setAttribute('fill', '#FFFFFF');
+  svg.appendChild(rightEyeBg);
+
+  // Pupila direita
+  const rightPupil = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  rightPupil.setAttribute('cx', '68');
+  rightPupil.setAttribute('cy', '45');
+  rightPupil.setAttribute('rx', '5');
+  rightPupil.setAttribute('ry', '6');
+  rightPupil.setAttribute('fill', '#1a1a2e');
+  svg.appendChild(rightPupil);
 
   return svg;
 }
