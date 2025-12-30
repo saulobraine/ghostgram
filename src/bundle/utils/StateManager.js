@@ -1,4 +1,4 @@
-// StateManager - Simple reactive state management
+// StateManager - Gerenciamento de estado reativo simples
 export class StateManager {
   constructor(initialState = {}) {
     this._state = { ...initialState };
@@ -6,16 +6,16 @@ export class StateManager {
   }
 
   /**
-   * Get current state (returns a copy to prevent mutations)
-   * @returns {Object} Current state
+   * Retorna o estado atual (retorna uma cópia para evitar mutações)
+   * @returns {Object} Estado atual
    */
   getState() {
     return { ...this._state };
   }
 
   /**
-   * Update state and notify listeners
-   * @param {Object} updates - Partial state updates
+   * Atualiza o estado e notifica os ouvintes
+   * @param {Object} updates - Atualizações parciais de estado
    */
   setState(updates) {
     this._state = { ...this._state, ...updates };
@@ -23,9 +23,9 @@ export class StateManager {
   }
 
   /**
-   * Subscribe to state changes
-   * @param {Function} listener - Callback function that receives new state
-   * @returns {Function} Unsubscribe function
+   * Se inscreve para mudanças de estado
+   * @param {Function} listener - Função de callback que recebe o novo estado
+   * @returns {Function} Função para cancelar a inscrição
    */
   subscribe(listener) {
     this._listeners.push(listener);
@@ -35,15 +35,15 @@ export class StateManager {
   }
 
   /**
-   * Unsubscribe a specific listener
-   * @param {Function} listener - Listener to remove
+   * Cancela a inscrição de um ouvinte específico
+   * @param {Function} listener - Ouvinte a remover
    */
   unsubscribe(listener) {
     this._listeners = this._listeners.filter(l => l !== listener);
   }
 
   /**
-   * Notify all listeners of state changes
+   * Notifica todos os ouvintes sobre as mudanças de estado
    * @private
    */
   _notify() {
@@ -52,17 +52,18 @@ export class StateManager {
       try {
         listener(state);
       } catch (error) {
-        console.error('[StateManager] Error in listener:', error);
+        console.error('[StateManager] Erro no listener:', error);
       }
     });
   }
 
   /**
-   * Reset state to initial value
-   * @param {Object} initialState - New initial state
+   * Redefine o estado para o valor inicial
+   * @param {Object} initialState - Novo estado inicial
    */
   reset(initialState) {
     this._state = { ...initialState };
     this._notify();
   }
 }
+

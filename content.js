@@ -1,37 +1,21 @@
-// Content script entry point - Normal script (no ES6 modules)
-// This file loads content-main.js via dynamic import()
-
-console.log('[ContentScript] Entry point carregado!', new Date().toISOString());
-console.log('[ContentScript] Chrome runtime ID:', chrome.runtime.id);
+// Content script - Ponto de entrada
+// Carrega o módulo principal dinamicamente
 
 (async () => {
+  // Evita execução duplicada
+  if (window.__GHOSTGRAM_CONTENT_LOADED__) {
+    return;
+  }
+  window.__GHOSTGRAM_CONTENT_LOADED__ = true;
+
+  console.log('[GhostGram] Carregando extensão...');
+
   try {
-    // Carrega o módulo principal usando import() dinâmico
-    const src = chrome.runtime.getURL('content-main.js');
-    console.log('[ContentScript] Carregando módulo principal de:', src);
-
-    // Vite não consegue analisar imports dinâmicos com URL em runtime.
-    // Mantemos assim porque em extensão precisamos usar chrome.runtime.getURL().
-    const contentMain = await import(/* @vite-ignore */ src);
-    console.log('[ContentScript] Módulo principal carregado com sucesso');
-    console.log('[ContentScript] Exports disponíveis:', Object.keys(contentMain));
-
-    // Inicializa o ContentScript
-    if (contentMain.initializeContentScript) {
-      console.log('[ContentScript] Inicializando ContentScript...');
-      contentMain.initializeContentScript();
-    } else {
-      console.error('[ContentScript] Função initializeContentScript não encontrada no módulo');
-      console.error('[ContentScript] Exports disponíveis:', Object.keys(contentMain));
-    }
+    // Importa o módulo principal
+    const moduleUrl = chrome.runtime.getURL('content-main.js');
+    await import(moduleUrl);
+    console.log('[GhostGram] Módulo carregado com sucesso');
   } catch (error) {
-    console.error('[ContentScript] Erro ao carregar módulo principal:', error);
-    console.error('[ContentScript] Stack trace:', error.stack);
-    console.error('[ContentScript] Detalhes do erro:', {
-      message: error.message,
-      name: error.name,
-      fileName: error.fileName,
-      lineNumber: error.lineNumber
-    });
+    console.error('[GhostGram] Erro ao carregar módulo:', error);
   }
 })();

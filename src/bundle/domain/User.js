@@ -1,4 +1,4 @@
-// User - Value Object (Wrap primitives)
+// User - Objeto de Valor (Encapsula primitivos)
 export class User {
   constructor(id, username, fullName, profilePicUrl, isVerified, isPrivate, followsViewer) {
     this._validate(id, username, profilePicUrl);
@@ -12,6 +12,11 @@ export class User {
     this._followsViewer = Boolean(followsViewer);
   }
 
+  /**
+   * Cria uma instância de User a partir de um objeto
+   * @param {Object} obj - Objeto com dados do usuário
+   * @returns {User} Nova instância de User
+   */
   static fromObject(obj) {
     if (!obj || !obj.id || !obj.username) {
       throw new Error('Invalid user object: id and username are required');
@@ -28,7 +33,11 @@ export class User {
     );
   }
 
-  _validate(id, username, profilePicUrl) {
+  /**
+   * Valida os dados obrigatórios do usuário
+   * @private
+   */
+  _validate(id, username) {
     if (!id) {
       throw new Error('User id is required');
     }
@@ -65,6 +74,11 @@ export class User {
     return this._followsViewer;
   }
 
+  /**
+   * Compara se dois usuários são o mesmo
+   * @param {User} other - Outro usuário a comparar
+   * @returns {boolean} Verdadeiro se forem o mesmo
+   */
   equals(other) {
     if (!(other instanceof User)) {
       return false;
@@ -72,6 +86,10 @@ export class User {
     return this._id === other._id;
   }
 
+  /**
+   * Converte a instância para um objeto plano
+   * @returns {Object} Representação em objeto
+   */
   toObject() {
     return {
       id: this._id,
@@ -84,4 +102,5 @@ export class User {
     };
   }
 }
+
 

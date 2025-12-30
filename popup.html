@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GhostGram</title>
     <style>
       body {
-        width: 300px;
+        width: 280px;
         padding: 20px;
         font-family: system-ui, -apple-system, sans-serif;
         margin: 0;
@@ -19,77 +19,82 @@
       }
       .header h1 {
         margin: 0;
-        font-size: 18px;
+        font-size: 20px;
         color: #00ffff;
       }
-      .status {
-        padding: 10px;
-        border-radius: 5px;
+      .info {
+        padding: 15px;
+        border-radius: 8px;
         margin-bottom: 15px;
-        text-align: center;
         background: #222;
+        font-size: 13px;
+        line-height: 1.5;
       }
-      .status.active {
-        background: #56d756;
+      .info p {
+        margin: 0 0 10px 0;
+      }
+      .info p:last-child {
+        margin-bottom: 0;
+      }
+      .step {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      .step-number {
+        background: #00ffff;
         color: #000;
-      }
-      .status.inactive {
-        background: #ac2626;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 10px;
+        flex-shrink: 0;
       }
       button {
         width: 100%;
         padding: 12px;
         border: none;
         border-radius: 5px;
-        background: #222;
-        color: #fff;
+        background: #00ffff;
+        color: #000;
         cursor: pointer;
         font-size: 14px;
         font-weight: bold;
-        margin-bottom: 10px;
         transition: background 0.2s;
       }
       button:hover {
-        background: #333;
-      }
-      button.primary {
-        background: #00ffff;
-        color: #000;
-      }
-      button.primary:hover {
         background: #00cccc;
-      }
-      .link {
-        text-align: center;
-        margin-top: 15px;
-      }
-      .link a {
-        color: #00ffff;
-        text-decoration: none;
-        font-size: 12px;
-      }
-      .link a:hover {
-        text-decoration: underline;
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <h1>GhostGram</h1>
+      <h1>👻 GhostGram</h1>
     </div>
 
-    <div id="status" class="status inactive">Checking status...</div>
-
-    <button id="toggleBtn" class="primary">Enable Extension</button>
-    <button id="startScanBtn" class="primary" style="display: none">
-      Iniciar Scan
-    </button>
-    <button id="optionsBtn">Options</button>
-
-    <div class="link">
-      <a href="#" id="openOptions">Open Options Page</a>
+    <div class="info">
+      <p><strong>Como usar:</strong></p>
+      <div class="step">
+        <span class="step-number">1</span>
+        <span>Acesse o Instagram</span>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <span>O ícone do fantasma aparecerá no canto inferior direito</span>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <span>Clique no fantasma para expandir e usar</span>
+      </div>
     </div>
 
-    <script type="module" src="popup.js"></script>
+    <button id="openInstagram">Abrir Instagram</button>
+
+    <script src="popup.js"></script>
   </body>
 </html>
