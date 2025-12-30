@@ -93,7 +93,8 @@ class ContentScript {
 
     const isStories = this._isStoriesUrl(location.pathname);
     const isReels = this._isReelsUrl(location.pathname);
-    const shouldHide = isStories || isReels;
+    const isPost = this._isPostUrl(location.pathname);
+    const shouldHide = isStories || isReels || isPost;
 
     if (shouldHide) {
       this._container.style.display = 'none';
@@ -114,6 +115,15 @@ class ContentScript {
    */
   _isReelsUrl(pathname) {
     return pathname.includes('/reels/') || pathname.startsWith('/reel/');
+  }
+
+  /**
+   * Verifica se está na URL de publicações (posts, IGTV, Reels)
+   */
+  _isPostUrl(pathname) {
+    return pathname.startsWith('/p/') ||
+      pathname.startsWith('/tv/') ||
+      pathname.startsWith('/reel/');
   }
 }
 

@@ -86,6 +86,7 @@ export class FloatingPanel {
       // Modo expandido: mostra apenas a janela (arrastável pelo header)
       this._refs.content = this._createContent(props);
       this.element.appendChild(this._refs.content);
+      setTimeout(() => this._constrainPosition(), 0);
     } else {
       // Modo minimizado: mostra apenas o botão
       this._refs.toggleButton = this._createToggleButton(props);
@@ -132,6 +133,12 @@ export class FloatingPanel {
         // Cria e adiciona a janela
         this._refs.content = this._createContent(props);
         this.element.appendChild(this._refs.content);
+
+        // Posiciona a janela e garante que está na tela
+        setTimeout(() => {
+          this._positionContent(this._refs.content);
+          this._constrainPosition();
+        }, 0);
       } else {
         this.element.classList.remove('iu-expanded');
 
@@ -458,14 +465,22 @@ export class FloatingPanel {
     const newX = this._elementStartX + deltaX;
     const newY = this._elementStartY + deltaY;
 
-    // Limita às bordas da tela
-    const maxX = window.innerWidth - 70;
-    const maxY = window.innerHeight - 70;
+    // Dimensões reais do elemento
+    const width = this.element.offsetWidth;
+    const height = this.element.offsetHeight;
+
+    // Fallback para dimensões se o elemento não estiver visível ou carregado
+    const realWidth = width || (this.element.classList.contains('iu-expanded') ? 320 : 64);
+    const realHeight = height || (this.element.classList.contains('iu-expanded') ? 400 : 64);
+
+    // Limites da tela com margem de 10px
+    const maxX = window.innerWidth - realWidth - 10;
+    const maxY = window.innerHeight - realHeight - 10;
 
     const clampedX = Math.max(10, Math.min(newX, maxX));
     const clampedY = Math.max(10, Math.min(newY, maxY));
 
-    // Usa left/top em vez de right/bottom para drag
+    // Força left/top para drag
     this.element.style.left = `${clampedX}px`;
     this.element.style.top = `${clampedY}px`;
     this.element.style.right = 'auto';
@@ -473,6 +488,33 @@ export class FloatingPanel {
 
     // Salva posição
     this._position = { left: clampedX, top: clampedY };
+  }
+
+  /**
+   * Garante que o elemento está visível na tela
+   */
+  _constrainPosition() {
+    if (!this.element) return;
+
+    const rect = this.element.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    const maxX = window.innerWidth - width - 10;
+    const maxY = window.innerHeight - height - 10;
+
+    const clampedX = Math.max(10, Math.min(rect.left, maxX));
+    const clampedY = Math.max(10, Math.min(rect.top, maxY));
+
+    if (clampedX !== rect.left || clampedY !== rect.top) {
+      this.element.style.left = `${clampedX}px`;
+      this.element.style.top = `${clampedY}px`;
+      this.element.style.right = 'auto';
+      this.element.style.bottom = 'auto';
+
+      this._position = { left: clampedX, top: clampedY };
+      this._savePosition();
+    }
   }
 
   /**
@@ -517,36 +559,37 @@ export class FloatingPanel {
    * Sempre abre abaixo, ajusta horizontal conforme espaço disponível
    */
   _positionContent(content) {
-    // Usa posição armazenada do elemento pai para calcular
     const panelRect = this.element?.getBoundingClientRect();
-    if (!panelRect) {
-      content.style.top = '70px';
-      content.style.right = '0px';
-      return;
-    }
+    if (!panelRect) return;
 
     const panelWidth = 320;
     const margin = 10;
 
-    // Sempre abre abaixo do botão
-    content.style.top = '70px';
-    content.style.bottom = 'auto';
+    // Verifica espaço vertical (abre acima se não couber abaixo)
+    const contentHeight = content.offsetHeight || 400;
+    const spaceBelow = window.innerHeight - panelRect.top - 70; // 70 é o offset do topo do content
 
-    // Calcula espaço disponível à direita do painel
+    if (spaceBelow < contentHeight && panelRect.top > contentHeight) {
+      // Abre acima do botão
+      content.style.bottom = '70px';
+      content.style.top = 'auto';
+    } else {
+      // Abre abaixo do botão
+      content.style.top = '70px';
+      content.style.bottom = 'auto';
+    }
+
+    // Calcula espaço horizontal
     const spaceRight = window.innerWidth - panelRect.left;
     const spaceLeft = panelRect.right;
 
-    // Decide posição horizontal
     if (spaceRight >= panelWidth + margin) {
-      // Abre à direita (alinhado com o botão)
       content.style.left = '0px';
       content.style.right = 'auto';
     } else if (spaceLeft >= panelWidth + margin) {
-      // Abre à esquerda
       content.style.right = '0px';
       content.style.left = 'auto';
     } else {
-      // Centraliza na tela se não couber em nenhum lado
       const centerOffset = (window.innerWidth - panelWidth) / 2 - panelRect.left;
       content.style.left = `${centerOffset}px`;
       content.style.right = 'auto';
@@ -572,6 +615,18 @@ export class FloatingPanel {
     );
     header.appendChild(titleContainer);
 
+    const actionsContainer = createElement('div', { className: 'iu-header-actions' });
+
+    const historyBtn = createElement('button', {
+      className: 'iu-history-btn',
+      onClick: (e) => {
+        e.stopPropagation();
+        props.onOpenHistory();
+      },
+      title: 'Ver Histórico Completo'
+    }, '📜');
+    actionsContainer.appendChild(historyBtn);
+
     const minimizeBtn = createElement('button', {
       className: 'iu-minimize-btn',
       onClick: (e) => {
@@ -580,8 +635,9 @@ export class FloatingPanel {
       },
       title: 'Minimizar'
     }, '−');
-    header.appendChild(minimizeBtn);
+    actionsContainer.appendChild(minimizeBtn);
 
+    header.appendChild(actionsContainer);
     content.appendChild(header);
 
     // Estado inicial
@@ -874,7 +930,7 @@ export class FloatingPanel {
       className: 'iu-user-avatar',
       alt: user.getUsername(),
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     });
     item.appendChild(avatar);
 
@@ -882,7 +938,7 @@ export class FloatingPanel {
     const info = createElement('div', {
       className: 'iu-user-info',
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     },
       createElement('span', { className: 'iu-user-username' }, `@${user.getUsername()}`),
       createElement('span', { className: 'iu-user-fullname' }, user.getFullName() || '')
@@ -917,7 +973,7 @@ export class FloatingPanel {
       className: 'iu-user-avatar',
       alt: user.getUsername(),
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     });
     item.appendChild(avatar);
 
@@ -925,7 +981,7 @@ export class FloatingPanel {
     const info = createElement('div', {
       className: 'iu-user-info',
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     },
       createElement('span', { className: 'iu-user-username' }, `@${user.getUsername()}`),
       createElement('span', { className: 'iu-user-fullname' }, user.getFullName() || '')
@@ -971,7 +1027,7 @@ export class FloatingPanel {
       className: 'iu-user-avatar',
       alt: user.getUsername(),
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     });
     item.appendChild(avatar);
 
@@ -979,7 +1035,7 @@ export class FloatingPanel {
     const info = createElement('div', {
       className: 'iu-user-info',
       style: { cursor: 'pointer' },
-      onClick: () => window.open(profileUrl, '_blank')
+      onClick: () => location.href = profileUrl
     },
       createElement('span', { className: 'iu-user-username' }, `@${user.getUsername()}`),
       createElement('span', { className: 'iu-user-fullname' }, user.getFullName() || '')

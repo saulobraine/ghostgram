@@ -3,6 +3,9 @@ import { FloatingPanel } from './components/FloatingPanel.js';
 import { InstagramApiClient } from './services/InstagramApiClient.js';
 import { ScanService } from './services/ScanService.js';
 import { UnfollowService } from './services/UnfollowService.js';
+import { StateManager } from './utils/StateManager.js';
+import { followMonitor } from './services/FollowMonitor.js';
+import { profileOverlay } from './components/ProfileOverlay.js';
 import { Settings } from '../domain/Settings.js';
 
 /**
@@ -15,7 +18,10 @@ export class FloatingPanelApp {
     this._floatingPanel = null;
     this._apiClient = new InstagramApiClient();
     this._settings = Settings.createDefault();
-    this._isFirstRender = true;
+
+    // Inicia monitoramento de cliques manuais e sobreposição de perfil
+    followMonitor.start();
+    profileOverlay.init();
 
     // Estado da aplicação
     this._state = {
@@ -92,7 +98,7 @@ export class FloatingPanelApp {
         this._state.isScanCompleted = true;
         this._state.isScanning = false;
         this._state.scanProgress = 100;
-        console.log(`[FloatingPanelApp] Scan concluído. ${this._state.nonFollowers.length} não-seguidores encontrados.`);
+        console.log(`[FloatingPanelApp] Scan concluído.${this._state.nonFollowers.length} não - seguidores encontrados.`);
       }
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no scan:', error);
@@ -183,7 +189,7 @@ export class FloatingPanelApp {
       );
       this._state.selectedUsers.clear();
 
-      console.log(`[FloatingPanelApp] Unfollow concluído. ${unfollowedIds.size} usuários removidos.`);
+      console.log(`[FloatingPanelApp] Unfollow concluído.${unfollowedIds.size} usuários removidos.`);
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no unfollow:', error);
       this._state.isUnfollowing = false;
@@ -220,7 +226,7 @@ export class FloatingPanelApp {
     }
 
     // Atualiza visual do item selecionado
-    const userItem = this._container.querySelector(`[data-user-id="${userId}"]`);
+    const userItem = this._container.querySelector(`[data - user - id= "${userId}"]`);
     if (userItem) {
       userItem.classList.toggle('iu-selected');
     }
@@ -278,6 +284,13 @@ export class FloatingPanelApp {
   }
 
   /**
+   * Abre a página de histórico completo
+   */
+  _handleOpenHistory() {
+    chrome.runtime.sendMessage({ action: 'openHistory' });
+  }
+
+  /**
    * Retorna props para o componente
    */
   _getProps() {
@@ -304,7 +317,8 @@ export class FloatingPanelApp {
       onToggleAll: (selectAll) => this._handleToggleAll(selectAll),
       onToggleWhitelist: (userId) => this._handleToggleWhitelist(userId),
       onChangeTab: (tab) => this._handleChangeTab(tab),
-      onSearch: (query) => this._handleSearch(query)
+      onSearch: (query) => this._handleSearch(query),
+      onOpenHistory: () => this._handleOpenHistory()
     };
   }
 
