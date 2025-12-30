@@ -1,267 +1,354 @@
-// FloatingPanelApp - Minimal app that only renders FloatingPanel (Vanilla JS)
+// FloatingPanelApp - Aplicação simplificada para o painel flutuante
 import { FloatingPanel } from './components/FloatingPanel.js';
-import { FloatingPanelState } from './managers/FloatingPanelState.js';
-import { ScanningManager } from './managers/ScanningManager.js';
-import { UnfollowingManager } from './managers/UnfollowingManager.js';
-import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
-import { ExtensionState } from '../domain/ExtensionState.js';
-import { STORAGE_KEYS } from '../constants/Constants.js';
-import { UserFilterService } from './services/UserFilterService.js';
-import { Filter } from './domain/Filter.js';
+import { InstagramApiClient } from './services/InstagramApiClient.js';
+import { ScanService } from './services/ScanService.js';
+import { UnfollowService } from './services/UnfollowService.js';
+import { Settings } from '../domain/Settings.js';
 
+/**
+ * Aplicação principal do painel flutuante
+ * Gerencia o estado e coordena os serviços de scan e unfollow
+ */
 export class FloatingPanelApp {
   constructor() {
-    this._scanning = new ScanningManager();
-    this._unfollowing = new UnfollowingManager();
-    this._floatingPanelState = new FloatingPanelState(false);
-    this._extensionEnabled = true;
-    this._floatingPanel = null;
     this._container = null;
-    this._unsubscribers = [];
-    this._setupStateListeners();
-    this._setupStorageListener();
-    this._loadExtensionState();
-  }
+    this._floatingPanel = null;
+    this._apiClient = new InstagramApiClient();
+    this._settings = Settings.createDefault();
+    this._isFirstRender = true;
 
-  /**
-   * Setup state change listeners
-   * @private
-   */
-  _setupStateListeners() {
-    // Listen to floating panel state changes
-    const unsubscribePanel = this._floatingPanelState.subscribe(() => {
-      this._render();
-    });
-    this._unsubscribers.push(unsubscribePanel);
-
-    // Listen to scanning state changes
-    const unsubscribeScanning = this._scanning.subscribe(() => {
-      this._render();
-    });
-    this._unsubscribers.push(unsubscribeScanning);
-
-    // Listen to unfollowing state changes
-    const unsubscribeUnfollowing = this._unfollowing.subscribe(() => {
-      this._render();
-    });
-    this._unsubscribers.push(unsubscribeUnfollowing);
-  }
-
-  /**
-   * Setup storage change listener
-   * @private
-   */
-  _setupStorageListener() {
-    const handleStorageChange = (changes, areaName) => {
-      if (areaName === 'local' && changes[STORAGE_KEYS.ENABLED]) {
-        const state = ExtensionState.fromStorageValue(changes[STORAGE_KEYS.ENABLED].newValue);
-        this._extensionEnabled = state.isEnabled();
-        this._render();
-      }
+    // Estado da aplicação
+    this._state = {
+      isExpanded: false,
+      isScanning: false,
+      isPaused: false,
+      isScanCompleted: false,
+      isUnfollowing: false,
+      scanProgress: 0,
+      unfollowProgress: 0,
+      nonFollowers: [],
+      selectedUsers: new Set(),
+      whitelist: new Set(),
+      activeTab: 'nonFollowers',
+      searchQuery: '',
+      unfollowLog: []
     };
 
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    this._storageListener = handleStorageChange;
+    // Serviços
+    this._scanService = null;
+    this._unfollowService = null;
   }
 
   /**
-   * Load extension state from storage
-   * @private
+   * Inicializa a aplicação
+   * @param {HTMLElement} container - Elemento container
    */
-  async _loadExtensionState() {
-    try {
-      const adapter = new LocalStorageAdapter();
-      const value = await adapter.get(STORAGE_KEYS.ENABLED);
-      const state = ExtensionState.fromStorageValue(value);
-      this._extensionEnabled = state.isEnabled();
-      this._render();
-    } catch (error) {
-      console.error('[FloatingPanelApp] Error loading extension state:', error);
-    }
+  init(container) {
+    this._container = container;
+    this._render();
+    this._setupMessageListener();
+    console.log('[FloatingPanelApp] Inicializado');
   }
 
   /**
-   * Handle start scan action
-   * @private
+   * Configura listener para mensagens do content script
    */
-  async _handleStartScan() {
-    // Double-check to prevent multiple scans
-    const scanningState = this._scanning.getState();
-    if (scanningState.status?.isScanning?.()) {
-      console.log('[FloatingPanelApp] Scan já está em andamento');
-      return;
-    }
-
-    try {
-      await this._scanning.start();
-    } catch (error) {
-      console.error('[FloatingPanelApp] Erro ao iniciar scan:', error);
-    }
-  }
-
-  /**
-   * Get filtered non-followers (users who don't follow back)
-   * @private
-   * @returns {Array} Filtered users
-   */
-  _getFilteredNonFollowers() {
-    const scanningState = this._scanning.getState();
-    const allResults = scanningState.results || [];
-
-    if (allResults.length === 0) {
-      return [];
-    }
-
-    // Use default filter which shows only non-followers
-    const defaultFilter = Filter.createDefault();
-    const filterService = new UserFilterService();
-
-    // Filter to show only non-followers (no whitelist, no search term, non_whitelisted tab)
-    return filterService.filter(
-      allResults,
-      defaultFilter,
-      '', // no search term
-      [], // no whitelist
-      'non_whitelisted' // default tab
-    );
-  }
-
-  /**
-   * Handle copy list action
-   * @private
-   */
-  _handleCopyList() {
-    const filteredUsers = this._getFilteredNonFollowers();
-    if (filteredUsers.length === 0) {
-      alert('Nenhum usuário encontrado');
-      return;
-    }
-    const list = filteredUsers.map(u => u.getUsername ? u.getUsername() : (u.username || u.id)).join('\n');
-    navigator.clipboard.writeText(list).then(() => {
-      alert('Lista copiada!');
+  _setupMessageListener() {
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'INSTAGRAM_UNFOLLOWERS_START_SCAN') {
+        this._handleStartScan();
+      }
     });
   }
 
   /**
-   * Render the floating panel
-   * @private
+   * Inicia o processo de scan
+   */
+  async _handleStartScan() {
+    if (this._state.isScanning) {
+      return;
+    }
+
+    this._state.isScanning = true;
+    this._state.isPaused = false;
+    this._state.isScanCompleted = false;
+    this._state.scanProgress = 0;
+    this._state.nonFollowers = [];
+    this._state.selectedUsers.clear();
+    this._state.isExpanded = true;
+    this._update();
+
+    this._scanService = new ScanService(
+      this._apiClient,
+      this._settings,
+      (percentage, results) => this._onScanProgress(percentage, results)
+    );
+
+    try {
+      const allFollowing = await this._scanService.start();
+      // Se foi cancelado, não atualiza estado final
+      if (this._state.isScanning) {
+        this._state.nonFollowers = allFollowing.filter(user => !user.followsViewer());
+        this._state.isScanCompleted = true;
+        this._state.isScanning = false;
+        this._state.scanProgress = 100;
+        console.log(`[FloatingPanelApp] Scan concluído. ${this._state.nonFollowers.length} não-seguidores encontrados.`);
+      }
+    } catch (error) {
+      console.error('[FloatingPanelApp] Erro no scan:', error);
+      this._state.isScanning = false;
+    }
+
+    this._state.isPaused = false;
+    this._update();
+  }
+
+  /**
+   * Pausa/resume o scan
+   */
+  _handleTogglePause() {
+    if (!this._scanService || !this._state.isScanning) {
+      return;
+    }
+
+    if (this._state.isPaused) {
+      this._scanService.resume();
+      this._state.isPaused = false;
+    } else {
+      this._scanService.pause();
+      this._state.isPaused = true;
+    }
+    this._update();
+  }
+
+  /**
+   * Cancela o scan
+   */
+  _handleCancelScan() {
+    if (!this._scanService) {
+      return;
+    }
+
+    this._scanService.stop();
+    this._state.isScanning = false;
+    this._state.isPaused = false;
+    this._state.isScanCompleted = this._state.nonFollowers.length > 0;
+    this._update();
+    console.log('[FloatingPanelApp] Scan cancelado.');
+  }
+
+  /**
+   * Callback de progresso do scan
+   */
+  _onScanProgress(percentage, results) {
+    this._state.scanProgress = percentage;
+    // Atualiza contagem parcial de não-seguidores
+    this._state.nonFollowers = results.filter(user => !user.followsViewer());
+    this._update();
+  }
+
+  /**
+   * Inicia o processo de unfollow
+   */
+  async _handleStartUnfollow() {
+    if (this._state.isUnfollowing || this._state.selectedUsers.size === 0) {
+      return;
+    }
+
+    const usersToUnfollow = this._state.nonFollowers.filter(
+      user => this._state.selectedUsers.has(user.getId())
+    );
+
+    this._state.isUnfollowing = true;
+    this._state.unfollowProgress = 0;
+    this._state.unfollowLog = [];
+    this._update();
+
+    this._unfollowService = new UnfollowService(
+      this._apiClient,
+      this._settings,
+      (percentage, log) => this._onUnfollowProgress(percentage, log)
+    );
+
+    try {
+      const log = await this._unfollowService.execute(usersToUnfollow);
+      this._state.unfollowLog = log;
+      this._state.isUnfollowing = false;
+      this._state.unfollowProgress = 100;
+
+      // Remove usuários que foram unfollowed da lista
+      const unfollowedIds = new Set(log.filter(e => e.success).map(e => e.user.getId()));
+      this._state.nonFollowers = this._state.nonFollowers.filter(
+        user => !unfollowedIds.has(user.getId())
+      );
+      this._state.selectedUsers.clear();
+
+      console.log(`[FloatingPanelApp] Unfollow concluído. ${unfollowedIds.size} usuários removidos.`);
+    } catch (error) {
+      console.error('[FloatingPanelApp] Erro no unfollow:', error);
+      this._state.isUnfollowing = false;
+    }
+
+    this._update();
+  }
+
+  /**
+   * Callback de progresso do unfollow
+   */
+  _onUnfollowProgress(percentage, log) {
+    this._state.unfollowProgress = percentage;
+    this._state.unfollowLog = log;
+    this._update();
+  }
+
+  /**
+   * Toggle expansão do painel
+   */
+  _handleToggle() {
+    this._state.isExpanded = !this._state.isExpanded;
+    this._update();
+  }
+
+  /**
+   * Toggle seleção de usuário
+   */
+  _handleToggleUser(userId) {
+    if (this._state.selectedUsers.has(userId)) {
+      this._state.selectedUsers.delete(userId);
+    } else {
+      this._state.selectedUsers.add(userId);
+    }
+
+    // Atualiza visual do item selecionado
+    const userItem = this._container.querySelector(`[data-user-id="${userId}"]`);
+    if (userItem) {
+      userItem.classList.toggle('iu-selected');
+    }
+
+    // Atualiza contador e botão
+    this._floatingPanel.update(this._getProps());
+  }
+
+  /**
+   * Seleciona/deseleciona todos os usuários
+   */
+  _handleToggleAll(selectAll) {
+    if (selectAll) {
+      this._state.nonFollowers.forEach(user => {
+        this._state.selectedUsers.add(user.getId());
+      });
+    } else {
+      this._state.selectedUsers.clear();
+    }
+
+    // Re-render necessário para atualizar todos checkboxes
+    this._render();
+  }
+
+  /**
+   * Toggle whitelist de um usuário
+   */
+  _handleToggleWhitelist(userId) {
+    if (this._state.whitelist.has(userId)) {
+      this._state.whitelist.delete(userId);
+      // Também remove da seleção se estava selecionado
+    } else {
+      this._state.whitelist.add(userId);
+      // Remove da seleção ao adicionar na whitelist
+      this._state.selectedUsers.delete(userId);
+    }
+    this._render();
+  }
+
+  /**
+   * Muda aba ativa
+   */
+  _handleChangeTab(tab) {
+    this._state.activeTab = tab;
+    this._state.searchQuery = '';
+    this._render();
+  }
+
+  /**
+   * Atualiza pesquisa
+   */
+  _handleSearch(query) {
+    this._state.searchQuery = query;
+    this._render();
+  }
+
+  /**
+   * Retorna props para o componente
+   */
+  _getProps() {
+    return {
+      isExpanded: this._state.isExpanded,
+      isScanning: this._state.isScanning,
+      isPaused: this._state.isPaused,
+      isScanCompleted: this._state.isScanCompleted,
+      isUnfollowing: this._state.isUnfollowing,
+      scanProgress: this._state.scanProgress,
+      unfollowProgress: this._state.unfollowProgress,
+      nonFollowers: this._state.nonFollowers,
+      selectedUsers: this._state.selectedUsers,
+      whitelist: this._state.whitelist,
+      activeTab: this._state.activeTab,
+      searchQuery: this._state.searchQuery,
+      unfollowLog: this._state.unfollowLog,
+      onToggle: () => this._handleToggle(),
+      onStartScan: () => this._handleStartScan(),
+      onTogglePause: () => this._handleTogglePause(),
+      onCancelScan: () => this._handleCancelScan(),
+      onStartUnfollow: () => this._handleStartUnfollow(),
+      onToggleUser: (userId) => this._handleToggleUser(userId),
+      onToggleAll: (selectAll) => this._handleToggleAll(selectAll),
+      onToggleWhitelist: (userId) => this._handleToggleWhitelist(userId),
+      onChangeTab: (tab) => this._handleChangeTab(tab),
+      onSearch: (query) => this._handleSearch(query)
+    };
+  }
+
+  /**
+   * Renderiza o painel pela primeira vez
    */
   _render() {
     if (!this._container) {
       return;
     }
 
-    const panelState = this._floatingPanelState.getState();
-    const scanningState = this._scanning.getState();
-    const unfollowingState = this._unfollowing.getState();
-    const selectedResultsCount = scanningState.selectedResults?.length || 0;
+    // Limpa o container
+    this._container.innerHTML = '';
 
-    // Get filtered non-followers for display
-    const filteredNonFollowers = this._getFilteredNonFollowers();
-
-    // Create modified scanning state with filtered results for display
-    const filteredScanningState = {
-      ...scanningState,
-      results: filteredNonFollowers
-    };
-
-    if (!this._floatingPanel) {
-      // Create new panel
-      this._floatingPanel = new FloatingPanel({
-        isExpanded: panelState.isExpanded,
-        onToggle: () => this._floatingPanelState.toggle(),
-        scanningState: filteredScanningState,
-        unfollowingState: unfollowingState,
-        extensionEnabled: this._extensionEnabled,
-        onStartScan: () => this._handleStartScan(),
-        onCopyList: () => this._handleCopyList(),
-        selectedResultsCount: selectedResultsCount,
-        onPauseScanning: () => this._scanning.pause(),
-        onResumeScanning: () => this._scanning.resume(),
-        isScanningPaused: this._scanning.isPaused(),
-        onPauseUnfollowing: () => this._unfollowing.pause(),
-        onResumeUnfollowing: () => this._unfollowing.resume(),
-        isUnfollowingPaused: this._unfollowing.isPaused()
-      });
-
-      const panelElement = this._floatingPanel.render();
-      if (panelElement) {
-        this._container.appendChild(panelElement);
-      }
-    } else {
-      // Update existing panel
-      this._floatingPanel.update({
-        isExpanded: panelState.isExpanded,
-        scanningState: filteredScanningState,
-        unfollowingState: unfollowingState,
-        extensionEnabled: this._extensionEnabled,
-        selectedResultsCount: selectedResultsCount,
-        onPauseScanning: () => this._scanning.pause(),
-        onResumeScanning: () => this._scanning.resume(),
-        isScanningPaused: this._scanning.isPaused(),
-        onPauseUnfollowing: () => this._unfollowing.pause(),
-        onResumeUnfollowing: () => this._unfollowing.resume(),
-        isUnfollowingPaused: this._unfollowing.isPaused()
-      });
-    }
+    // Cria o painel
+    this._floatingPanel = new FloatingPanel();
+    this._container.appendChild(this._floatingPanel.render(this._getProps()));
+    this._isFirstRender = false;
   }
 
   /**
-   * Initialize and mount the app
-   * @param {HTMLElement} container - Container element to mount to
+   * Atualiza o painel de forma incremental
    */
-  init(container) {
-    this._container = container;
-    // Clear container before rendering
-    if (container) {
-      container.innerHTML = '';
+  _update() {
+    if (!this._floatingPanel || this._isFirstRender) {
+      this._render();
+      return;
     }
-    this._render();
+
+    this._floatingPanel.update(this._getProps());
   }
 
   /**
-   * Handle messages from content script
-   * @param {Object} message - Message object
-   */
-  handleMessage(message) {
-    if (message.type === 'INSTAGRAM_UNFOLLOWERS_START_SCAN') {
-      // Prevent multiple simultaneous scans
-      const scanningState = this._scanning.getState();
-      if (scanningState.status?.isScanning?.()) {
-        console.log('[FloatingPanelApp] Scan já está em andamento, ignorando nova solicitação');
-        return;
-      }
-      this._handleStartScan();
-    }
-  }
-
-  /**
-   * Cleanup and destroy the app
+   * Destrói a aplicação
    */
   destroy() {
-    // Unsubscribe from all state changes
-    this._unsubscribers.forEach(unsubscribe => unsubscribe());
-    this._unsubscribers = [];
-
-    // Remove storage listener
-    if (this._storageListener) {
-      chrome.storage.onChanged.removeListener(this._storageListener);
-      this._storageListener = null;
+    if (this._scanService) {
+      this._scanService.stop();
     }
-
-    // Destroy managers
-    this._floatingPanelState.destroy();
-
-    // Destroy floating panel
-    if (this._floatingPanel) {
-      this._floatingPanel.destroy();
-      this._floatingPanel = null;
+    if (this._unfollowService) {
+      this._unfollowService.stop();
     }
-
-    // Clear container
     if (this._container) {
       this._container.innerHTML = '';
-      this._container = null;
     }
   }
 }
