@@ -11,7 +11,8 @@ export const MESSAGE_ACTIONS = {
   TOGGLE: 'toggle',
   GET_STATUS: 'getStatus',
   UPDATE_STATUS: 'updateStatus',
-  START_SCAN: 'startScan'
+  START_SCAN: 'startScan',
+  OPEN_HISTORY: 'openHistory'
 };
 
 export const DEFAULT_SETTINGS = {

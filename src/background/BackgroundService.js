@@ -24,7 +24,9 @@ export class BackgroundService {
 
   _setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      return this._messageRouter.route(request, sender, sendResponse);
+      // No MV3, para respostas assíncronas, o handler deve retornar true de forma síncrona
+      this._messageRouter.route(request, sender, sendResponse);
+      return true;
     });
   }
 

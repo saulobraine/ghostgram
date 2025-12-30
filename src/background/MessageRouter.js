@@ -18,7 +18,16 @@ export class MessageRouter {
       await this._handleUpdateStatus(request, sendResponse);
       return true;
     }
+    if (request.action === MESSAGE_ACTIONS.OPEN_HISTORY) {
+      await this._handleOpenHistory(sendResponse);
+      return true;
+    }
     return false;
+  }
+
+  async _handleOpenHistory(sendResponse) {
+    chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
+    sendResponse({ success: true });
   }
 
   async _handleGetStatus(sendResponse) {
