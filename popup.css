@@ -1,0 +1,352 @@
+/* GhostGram Popup Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 320px;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #111;
+  color: #fff;
+  padding: 0;
+  margin: 0;
+}
+
+/* Header */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.popup-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-header__icon {
+  font-size: 24px;
+}
+
+.popup-header__title {
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #833ab4 0%, #e1306c 50%, #fcaf45 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.popup-header__status {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.popup-header__status--active {
+  background: rgba(86, 215, 86, 0.2);
+  color: #56d756;
+}
+
+.popup-header__status--inactive {
+  background: rgba(172, 38, 38, 0.2);
+  color: #ac2626;
+}
+
+/* Main Toggle Section */
+.popup-main-toggle {
+  padding: 20px 16px;
+  border-bottom: 1px solid #333;
+}
+
+.popup-main-toggle__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup-main-toggle__label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Toggle Switch Component */
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.toggle-switch__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch__slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  border-radius: 26px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-switch__slider::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.toggle-switch__input:checked + .toggle-switch__slider {
+  background: linear-gradient(135deg, #833ab4 0%, #e1306c 50%, #fcaf45 100%);
+}
+
+.toggle-switch__input:checked + .toggle-switch__slider::before {
+  transform: translateX(22px);
+}
+
+.toggle-switch__input:focus + .toggle-switch__slider {
+  box-shadow: 0 0 0 2px rgba(225, 48, 108, 0.3);
+}
+
+/* Quick Settings Section */
+.popup-settings {
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.popup-settings__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.popup-settings__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.popup-settings__item:not(:last-child) {
+  border-bottom: 1px solid #222;
+}
+
+.popup-settings__item-label {
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* Dropdown Select */
+.popup-select {
+  position: relative;
+}
+
+.popup-select__button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.popup-select__button:hover {
+  border-color: #666;
+  background: #2a2a2a;
+}
+
+.popup-select__arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.popup-select--open .popup-select__arrow {
+  transform: rotate(180deg);
+}
+
+.popup-select__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 140px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  display: none;
+  overflow: hidden;
+}
+
+.popup-select--open .popup-select__menu {
+  display: block;
+  animation: dropdown-fade-in 0.2s ease;
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popup-select__option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.popup-select__option:hover {
+  background: #333;
+  color: #fff;
+}
+
+.popup-select__option--selected {
+  background: rgba(225, 48, 108, 0.2);
+  color: #e1306c;
+}
+
+/* Actions Section */
+.popup-actions {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+}
+
+.popup-actions__btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.popup-actions__btn--primary {
+  background: linear-gradient(135deg, #833ab4 0%, #e1306c 50%, #fcaf45 100%);
+  color: #fff;
+}
+
+.popup-actions__btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(225, 48, 108, 0.4);
+}
+
+.popup-actions__btn--secondary {
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.popup-actions__btn--secondary:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.popup-actions__btn-icon {
+  font-size: 16px;
+}
+
+/* Small Toggle (for settings items) */
+.toggle-switch--small {
+  width: 40px;
+  height: 22px;
+}
+
+.toggle-switch--small .toggle-switch__slider::before {
+  height: 16px;
+  width: 16px;
+}
+
+.toggle-switch--small
+  .toggle-switch__input:checked
+  + .toggle-switch__slider::before {
+  transform: translateX(18px);
+}
+
+/* Disabled state */
+.popup-settings__item--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Smooth transitions */
+.popup-header,
+.popup-main-toggle,
+.popup-settings,
+.popup-actions {
+  transition: opacity 0.2s ease;
+}
+
+/* Tooltip */
+.popup-tooltip {
+  position: relative;
+}
+
+.popup-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #333;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.popup-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
