@@ -18,7 +18,13 @@ export class SettingsSaver {
       this._getIntValue(SETTINGS_KEYS.TIME_BETWEEN_SEARCH_CYCLES, formElement),
       this._getIntValue(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_SEARCH_CYCLES, formElement),
       this._getIntValue(SETTINGS_KEYS.TIME_BETWEEN_UNFOLLOWS, formElement),
-      this._getIntValue(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS, formElement)
+      this._getIntValue(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS, formElement),
+      this._getIntValue(SETTINGS_KEYS.SUCCESS_MESSAGE_DURATION, formElement),
+      this._getIntValue(SETTINGS_KEYS.UNFOLLOWERS_PER_PAGE, formElement),
+      this._getIdsValue(SETTINGS_KEYS.WITHOUT_PROFILE_PICTURE_URL_IDS, formElement),
+      this._getStringValue(SETTINGS_KEYS.INSTAGRAM_GRAPHQL_QUERY_HASH, formElement),
+      this._getStringValue(SETTINGS_KEYS.INSTAGRAM_GRAPHQL_BASE_URL, formElement),
+      this._getStringValue(SETTINGS_KEYS.INSTAGRAM_UNFOLLOW_BASE_URL, formElement)
     );
   }
 
@@ -27,12 +33,20 @@ export class SettingsSaver {
     return parseInt(input.value, 10);
   }
 
+  _getStringValue(key, formElement) {
+    const input = formElement.querySelector(`#${key}`);
+    return input.value.trim();
+  }
+
+  _getIdsValue(key, formElement) {
+    const value = this._getStringValue(key, formElement);
+    return value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+  }
+
   async _save(settings) {
     const data = settings.toObject();
-    await this._saveSetting(SETTINGS_KEYS.TIME_BETWEEN_SEARCH_CYCLES, data.timeBetweenSearchCycles);
-    await this._saveSetting(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_SEARCH_CYCLES, data.timeToWaitAfterFiveSearchCycles);
-    await this._saveSetting(SETTINGS_KEYS.TIME_BETWEEN_UNFOLLOWS, data.timeBetweenUnfollows);
-    await this._saveSetting(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS, data.timeToWaitAfterFiveUnfollows);
+    const savePromises = Object.entries(data).map(([key, value]) => this._saveSetting(key, value));
+    await Promise.all(savePromises);
   }
 
   async _saveSetting(key, value) {

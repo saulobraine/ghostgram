@@ -1,147 +1,73 @@
-// PopupController - Orchestrates popup functionality
-import { StatusUpdater } from './StatusUpdater.js';
+// PopupController - Orquestra funcionalidades principais do popup
 import { ToggleHandler } from './ToggleHandler.js';
 import { ExtensionState } from '../domain/ExtensionState.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
-import { STORAGE_KEYS, MESSAGE_ACTIONS } from '../constants/Constants.js';
+import { STORAGE_KEYS } from '../constants/Constants.js';
 
 export class PopupController {
   constructor() {
     this._storage = new LocalStorageAdapter();
-    this._statusUpdater = null;
     this._toggleHandler = new ToggleHandler(this._storage);
+    this._elements = {};
   }
 
-  initialize(statusElement, toggleButton, startScanButton, optionsButton, optionsLink) {
-    this._statusUpdater = new StatusUpdater(statusElement, toggleButton, startScanButton);
-    this._setupToggleButton(toggleButton);
-    this._setupStartScanButton(startScanButton);
-    this._setupOptionsButton(optionsButton);
-    this._setupOptionsLink(optionsLink);
-    this._updateStatus();
+  initialize(elements) {
+    this._elements = elements;
+    this._setupMainToggle();
+    this._setupOpenInstagramBtn();
+    this._setupOpenSettingsBtn();
+    this._loadInitialState();
   }
 
-  _setupToggleButton(button) {
-    button.addEventListener('click', () => this._handleToggle());
+  _setupMainToggle() {
+    this._elements.mainToggle.addEventListener('change', () => this._handleToggle());
   }
 
-  _setupStartScanButton(button) {
-    button.addEventListener('click', () => this._handleStartScan());
+  _setupOpenInstagramBtn() {
+    this._elements.openInstagramBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://www.instagram.com/' });
+      window.close();
+    });
   }
 
-  _setupOptionsButton(button) {
-    button.addEventListener('click', () => this._openOptions());
-  }
-
-  _setupOptionsLink(link) {
-    link.addEventListener('click', e => {
-      e.preventDefault();
-      this._openOptions();
+  _setupOpenSettingsBtn() {
+    this._elements.openSettingsBtn.addEventListener('click', () => {
+      chrome.runtime.openOptionsPage();
     });
   }
 
   async _handleToggle() {
+    console.log('[PopupController] Toggle clicado');
     await this._toggleHandler.toggle();
-    await this._updateStatus();
+    console.log('[PopupController] Toggle executado, atualizando UI');
+    await this._updateStatusUI();
   }
 
-  async _handleStartScan() {
+  async _loadInitialState() {
+    console.log('[PopupController] Carregando estado inicial');
+    await this._updateStatusUI();
+  }
+
+  async _updateStatusUI() {
     const state = await this._getCurrentState();
-    if (!state.isEnabled()) {
-      alert('Por favor, habilite a extensão primeiro.');
+    const isEnabled = state.isEnabled();
+    console.log('[PopupController] Estado atual:', isEnabled ? 'Ativado' : 'Desativado');
+
+    this._elements.mainToggle.checked = isEnabled;
+    this._updateStatusBadge(isEnabled);
+  }
+
+  _updateStatusBadge(isEnabled) {
+    const badge = this._elements.statusBadge;
+
+    if (isEnabled) {
+      badge.textContent = 'Ativo';
+      badge.className = 'popup-header__status popup-header__status--active';
       return;
     }
 
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab || !tab.url || !tab.url.includes('instagram.com')) {
-        alert('Por favor, abra uma aba do Instagram primeiro.');
-        return;
-      }
-
-      // Verifica se o content script está rodando
-      // Tenta algumas vezes porque pode estar inicializando
-      let contentScriptReady = false;
-      const maxChecks = 3;
-
-      for (let i = 0; i < maxChecks; i++) {
-        try {
-          const response = await chrome.tabs.sendMessage(tab.id, { action: MESSAGE_ACTIONS.GET_STATUS });
-          contentScriptReady = true;
-          break;
-        } catch (error) {
-          if (i < maxChecks - 1) {
-            // Aguarda um pouco antes de tentar novamente
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-      }
-
-      if (!contentScriptReady) {
-        // O content script não está rodando - precisa recarregar a página
-        // Não podemos injetar programaticamente porque usa módulos ES6
-        if (confirm('O content script não está rodando nesta página.\n\nIsso geralmente acontece quando:\n- A página foi aberta antes de habilitar a extensão\n- A página ainda está carregando\n\nDeseja recarregar a página do Instagram para ativar o content script?')) {
-          await chrome.tabs.reload(tab.id);
-          alert('Página recarregada. Aguarde a página carregar completamente (alguns segundos) e então clique em "Iniciar Scan" novamente.');
-          return;
-        }
-        return;
-      }
-
-      // Agora tenta enviar a mensagem START_SCAN
-      let retries = 3;
-      let lastError = null;
-
-      while (retries > 0) {
-        try {
-          const response = await chrome.tabs.sendMessage(tab.id, { action: MESSAGE_ACTIONS.START_SCAN });
-          if (response && response.success) {
-            return; // Sucesso
-          }
-        } catch (error) {
-          lastError = error;
-          retries--;
-
-          // Se não for erro de "recebedor não encontrado", para imediatamente
-          if (!error.message.includes('Could not establish connection') &&
-            !error.message.includes('Receiving end does not exist')) {
-            throw error;
-          }
-
-          // Aguarda um pouco antes de tentar novamente
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-      }
-
-      // Se chegou aqui, todas as tentativas falharam
-      throw lastError || new Error('Não foi possível conectar com o content script');
-
-    } catch (error) {
-      console.error('Erro ao iniciar scan:', error);
-
-      // Mensagem de erro mais específica
-      let errorMessage = 'Erro ao iniciar scan. ';
-      if (error.message && error.message.includes('Could not establish connection')) {
-        errorMessage += 'O content script não está rodando. Tente recarregar a página do Instagram.';
-      } else if (error.message && error.message.includes('Receiving end does not exist')) {
-        errorMessage += 'A extensão pode não estar totalmente carregada. Tente recarregar a página do Instagram.';
-      } else {
-        errorMessage += 'Certifique-se de que está na página do Instagram e que a extensão está habilitada.';
-      }
-
-      alert(errorMessage);
-    }
-  }
-
-  _openOptions() {
-    chrome.runtime.openOptionsPage();
-  }
-
-  async _updateStatus() {
-    const state = await this._getCurrentState();
-    this._statusUpdater.update(state.isEnabled());
+    badge.textContent = 'Inativo';
+    badge.className = 'popup-header__status popup-header__status--inactive';
   }
 
   async _getCurrentState() {
@@ -149,4 +75,3 @@ export class PopupController {
     return ExtensionState.fromStorageValue(value);
   }
 }
-

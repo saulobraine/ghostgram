@@ -82,16 +82,18 @@ export class ProfileOverlay {
    */
   async _injectInfo(container, username) {
     try {
-      // Busca histórico no banco de dados (pelo username pois o ID real é difícil de ter aqui)
+      // Busca histórico no banco de dados (especificamente unfollows via GhostGram)
       const allActions = await dbService.getAllActions();
-      const userActions = allActions.filter(a => a.username === username);
+      const ghostUnfollowActions = allActions.filter(a =>
+        a.username === username &&
+        a.actionType === 'unfollow' &&
+        a.source === 'auto'
+      );
 
-      if (userActions.length === 0) return;
+      if (ghostUnfollowActions.length === 0) return;
 
-      const lastAction = userActions[0];
-      const date = new Date(lastAction.timestamp).toLocaleString('pt-BR');
-      const actionText = lastAction.actionType === 'unfollow' ? 'Deixou de seguir' : 'Seguiu';
-      const sourceText = lastAction.source === 'auto' ? '(via GhostGram)' : '(manual)';
+      const lastAction = ghostUnfollowActions[0];
+      const date = new Date(lastAction.timestamp).toLocaleDateString('pt-BR');
 
       const infoElement = createElement('div', {
         className: 'ghostgram-profile-info',
@@ -108,7 +110,7 @@ export class ProfileOverlay {
         }
       },
         createElement('strong', { style: { marginBottom: '2px' } }, '📜 Histórico GhostGram'),
-        createElement('span', {}, `${actionText} em: ${date} ${sourceText}`)
+        createElement('span', {}, `Deixou de seguir em: ${date} (via ferramenta)`)
       );
 
       // Insere no final do header

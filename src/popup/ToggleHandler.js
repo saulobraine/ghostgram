@@ -10,40 +10,47 @@ export class ToggleHandler {
 
   async toggle() {
     const currentState = await this._getCurrentState();
+    console.log('[ToggleHandler] Estado atual:', currentState.isEnabled() ? 'Ativado' : 'Desativado');
     const newState = currentState.toggle();
+    console.log('[ToggleHandler] Novo estado:', newState.isEnabled() ? 'Ativado' : 'Desativado');
     await this._saveState(newState);
+    console.log('[ToggleHandler] Estado salvo no storage');
     await this._notifyContentScript();
   }
 
   async _getCurrentState() {
     const value = await this._storage.get(STORAGE_KEYS.ENABLED);
+    console.log('[ToggleHandler] Valor lido do storage:', value);
     return ExtensionState.fromStorageValue(value);
   }
 
   async _saveState(state) {
-    await this._storage.set(STORAGE_KEYS.ENABLED, state.toStorageValue());
+    const value = state.toStorageValue();
+    console.log('[ToggleHandler] Salvando no storage:', value);
+    await this._storage.set(STORAGE_KEYS.ENABLED, value);
   }
 
   async _notifyContentScript() {
-    const tabs = await this._getActiveTabs();
-    if (tabs.length === 0) {
-      return;
+    const tabs = await this._getInstagramTabs();
+
+    for (const tab of tabs) {
+      await this._sendToggleMessage(tab);
     }
-    await this._sendToggleMessage(tabs[0]);
   }
 
-  _getActiveTabs() {
+  _getInstagramTabs() {
     return new Promise(resolve => {
-      chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+      chrome.tabs.query({ url: 'https://www.instagram.com/*' }, resolve);
     });
   }
 
   async _sendToggleMessage(tab) {
     try {
       await this._sendMessage(tab.id);
-      return;
     } catch (error) {
-      this._handleMessageError(tab);
+      // Ignora erro - estado já foi salvo no storage
+      // O content script vai ler o novo estado quando a página recarregar
+      console.log('[ToggleHandler] Content script não respondeu na aba', tab.id);
     }
   }
 
@@ -57,14 +64,6 @@ export class ToggleHandler {
         resolve(response);
       });
     });
-  }
-
-  _handleMessageError(tab) {
-    if (this._isInstagramTab(tab)) {
-      chrome.tabs.reload(tab.id);
-      return;
-    }
-    alert('Please navigate to Instagram.com to use this extension');
   }
 
   _isInstagramTab(tab) {

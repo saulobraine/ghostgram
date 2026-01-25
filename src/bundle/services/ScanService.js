@@ -17,20 +17,32 @@ export class ScanService {
 
   /**
    * Inicia o processo de scan
+   * @param {Object} options - Opções de retomada (opcional)
+   * @param {Array} options.initialResults - Resultados já obtidos
+   * @param {string} options.startCursor - Cursor para iniciar
+   * @param {number} options.initialProcessedCount - Contagem inicial de processados
    * @returns {Promise<Array>} Lista de resultados
    */
-  async start() {
+  async start(options = {}) {
+    const {
+      initialResults = [],
+      startCursor = null,
+      initialProcessedCount = 0,
+      initialTotalCount = -1
+    } = options;
+
     this._isPaused = false;
     this._shouldStop = false;
 
-    const results = [];
-    let cursor = null;
-    let totalCount = -1;
-    let processedCount = 0;
+    const results = [...initialResults];
+    let cursor = startCursor;
+    let totalCount = initialTotalCount;
+    let processedCount = initialProcessedCount;
     let cycleCount = 0;
 
-    // Notifica progresso inicial (0%)
-    this._notifyProgress(0, []);
+    // Notifica progresso inicial ou retomado
+    const initialPercentage = totalCount > 0 ? Math.min(100, Math.round((processedCount / totalCount) * 100)) : 0;
+    this._notifyProgress(initialPercentage, results, cursor, processedCount, totalCount);
 
     while (!this._shouldStop) {
       if (this._isPaused) {
@@ -59,7 +71,7 @@ export class ScanService {
         percentage = Math.min(99, Math.max(1, Math.round((processedCount / (processedCount + 10)) * 100)));
       }
 
-      this._notifyProgress(percentage, results);
+      this._notifyProgress(percentage, results, cursor, processedCount, totalCount);
 
       if (!response.hasNextPage) {
         break;
@@ -87,7 +99,7 @@ export class ScanService {
 
   async _fetchPage(cursor) {
     try {
-      return await this._apiClient.fetchFollowers(cursor);
+      return await this._apiClient.fetchFollowers(this._settings, cursor);
     } catch (error) {
       console.error('[ScanService] Erro ao buscar seguidores:', error);
       throw error;
@@ -109,9 +121,9 @@ export class ScanService {
     return cycleCount > 0 && cycleCount % 5 === 0;
   }
 
-  _notifyProgress(percentage, results) {
+  _notifyProgress(percentage, results, cursor, processedCount, totalCount) {
     if (this._onProgress) {
-      this._onProgress(percentage, results);
+      this._onProgress(percentage, results, cursor, processedCount, totalCount);
     }
   }
 }

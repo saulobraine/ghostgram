@@ -4,97 +4,130 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GhostGram</title>
-    <style>
-      body {
-        width: 280px;
-        padding: 20px;
-        font-family: system-ui, -apple-system, sans-serif;
-        margin: 0;
-        background: #111;
-        color: #fff;
-      }
-      .header {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .header h1 {
-        margin: 0;
-        font-size: 20px;
-        color: #00ffff;
-      }
-      .info {
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        background: #222;
-        font-size: 13px;
-        line-height: 1.5;
-      }
-      .info p {
-        margin: 0 0 10px 0;
-      }
-      .info p:last-child {
-        margin-bottom: 0;
-      }
-      .step {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 8px;
-      }
-      .step-number {
-        background: #00ffff;
-        color: #000;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-        margin-right: 10px;
-        flex-shrink: 0;
-      }
-      button {
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: 5px;
-        background: #00ffff;
-        color: #000;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        transition: background 0.2s;
-      }
-      button:hover {
-        background: #00cccc;
-      }
-    </style>
+    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <div class="header">
-      <h1>👻 GhostGram</h1>
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-header__logo">
+        <span class="popup-header__icon">👻</span>
+        <span class="popup-header__title">GhostGram</span>
+      </div>
+      <span
+        id="statusBadge"
+        class="popup-header__status popup-header__status--inactive"
+      >
+        Inativo
+      </span>
     </div>
 
-    <div class="info">
-      <p><strong>Como usar:</strong></p>
-      <div class="step">
-        <span class="step-number">1</span>
-        <span>Acesse o Instagram</span>
-      </div>
-      <div class="step">
-        <span class="step-number">2</span>
-        <span>O ícone do fantasma aparecerá no canto inferior direito</span>
-      </div>
-      <div class="step">
-        <span class="step-number">3</span>
-        <span>Clique no fantasma para expandir e usar</span>
+    <!-- Main Toggle -->
+    <div class="popup-main-toggle">
+      <div class="popup-main-toggle__row">
+        <span class="popup-main-toggle__label">Extensão</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="mainToggle" class="toggle-switch__input" />
+          <span class="toggle-switch__slider"></span>
+        </label>
       </div>
     </div>
 
-    <button id="openInstagram">Abrir Instagram</button>
+    <!-- Quick Settings -->
+    <div class="popup-settings">
+      <div class="popup-settings__title">Configurações Rápidas</div>
 
-    <script src="popup.js"></script>
+      <!-- Panel Position -->
+      <div class="popup-settings__item">
+        <span class="popup-settings__item-label">Posição do Painel</span>
+        <div class="popup-select" id="positionSelect">
+          <button
+            type="button"
+            class="popup-select__button"
+            id="positionSelectBtn"
+          >
+            <span id="positionSelectLabel">Inferior Direito</span>
+            <span class="popup-select__arrow">▼</span>
+          </button>
+          <div class="popup-select__menu" id="positionSelectMenu">
+            <button
+              type="button"
+              class="popup-select__option"
+              data-value="top-left"
+            >
+              Superior Esquerdo
+            </button>
+            <button
+              type="button"
+              class="popup-select__option"
+              data-value="top-right"
+            >
+              Superior Direito
+            </button>
+            <button
+              type="button"
+              class="popup-select__option popup-select__option--selected"
+              data-value="bottom-right"
+            >
+              Inferior Direito
+            </button>
+            <button
+              type="button"
+              class="popup-select__option"
+              data-value="bottom-left"
+            >
+              Inferior Esquerdo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Expanded -->
+      <div class="popup-settings__item">
+        <span class="popup-settings__item-label">Iniciar Expandido</span>
+        <label class="toggle-switch toggle-switch--small">
+          <input
+            type="checkbox"
+            id="startExpandedToggle"
+            class="toggle-switch__input"
+          />
+          <span class="toggle-switch__slider"></span>
+        </label>
+      </div>
+
+      <!-- Stealth Mode -->
+      <div class="popup-settings__item">
+        <span class="popup-settings__item-label">Modo Discreto</span>
+        <label class="toggle-switch toggle-switch--small">
+          <input
+            type="checkbox"
+            id="stealthModeToggle"
+            class="toggle-switch__input"
+          />
+          <span class="toggle-switch__slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="popup-actions">
+      <button
+        type="button"
+        id="openInstagram"
+        class="popup-actions__btn popup-actions__btn--primary"
+      >
+        <span class="popup-actions__btn-icon">📷</span>
+        <span>Instagram</span>
+      </button>
+      <button
+        type="button"
+        id="openSettings"
+        class="popup-actions__btn popup-actions__btn--secondary popup-tooltip"
+        data-tooltip="Configurações Avançadas"
+      >
+        <span class="popup-actions__btn-icon">⚙️</span>
+      </button>
+    </div>
+
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

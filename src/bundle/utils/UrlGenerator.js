@@ -1,5 +1,3 @@
-// UrlGenerator - Gera URLs para a API do Instagram
-import { INSTAGRAM_GRAPHQL_BASE_URL, INSTAGRAM_GRAPHQL_QUERY_HASH, INSTAGRAM_UNFOLLOW_BASE_URL } from '../../constants/Constants.js';
 import { CookieHelper } from './CookieHelper.js';
 
 /**
@@ -8,10 +6,11 @@ import { CookieHelper } from './CookieHelper.js';
 export class UrlGenerator {
   /**
    * Gera a URL para buscar seguidores
+   * @param {Object} settings - Configurações do sistema
    * @param {string} cursor - Cursor para paginação (opcional)
    * @returns {string} URL completa
    */
-  static generateFollowersUrl(cursor) {
+  static generateFollowersUrl(settings, cursor) {
     const userId = CookieHelper.getUserId();
     if (!userId) {
       throw new Error('ID do usuário não encontrado nos cookies');
@@ -21,7 +20,7 @@ export class UrlGenerator {
       id: userId,
       include_reel: true,
       fetch_mutual: false,
-      first: '24'
+      first: settings.getUnfollowersPerPage().toString()
     };
 
     if (cursor) {
@@ -29,16 +28,21 @@ export class UrlGenerator {
     }
 
     const variablesJson = JSON.stringify(variables);
-    return `${INSTAGRAM_GRAPHQL_BASE_URL}?query_hash=${INSTAGRAM_GRAPHQL_QUERY_HASH}&variables=${encodeURIComponent(variablesJson)}`;
+    const baseUrl = settings.getInstagramGraphqlBaseUrl();
+    const queryHash = settings.getInstagramGraphqlQueryHash();
+
+    return `${baseUrl}?query_hash=${queryHash}&variables=${encodeURIComponent(variablesJson)}`;
   }
 
   /**
    * Gera a URL para realizar unfollow
+   * @param {Object} settings - Configurações do sistema
    * @param {string} userId - ID do usuário para dar unfollow
    * @returns {string} URL completa
    */
-  static generateUnfollowUrl(userId) {
-    return `${INSTAGRAM_UNFOLLOW_BASE_URL}${userId}/unfollow/`;
+  static generateUnfollowUrl(settings, userId) {
+    const baseUrl = settings.getInstagramUnfollowBaseUrl();
+    return `${baseUrl}${userId}/unfollow/`;
   }
 }
 

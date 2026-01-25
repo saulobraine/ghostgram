@@ -18,18 +18,25 @@ export class User {
    * @returns {User} Nova instância de User
    */
   static fromObject(obj) {
-    if (!obj || !obj.id || !obj.username) {
+    if (!obj) {
+      throw new Error('Invalid user object: object is null or undefined');
+    }
+
+    const id = obj.id || obj._id;
+    const username = obj.username || obj._username;
+
+    if (!id || !username) {
       throw new Error('Invalid user object: id and username are required');
     }
 
     return new User(
-      obj.id,
-      obj.username,
-      obj.full_name || obj.fullName || '',
-      obj.profile_pic_url || obj.profilePicUrl || '',
-      obj.is_verified || obj.isVerified || false,
-      obj.is_private || obj.isPrivate || false,
-      obj.follows_viewer || obj.followsViewer || false
+      id,
+      username,
+      obj.full_name || obj.fullName || obj._fullName || '',
+      obj.profile_pic_url || obj.profilePicUrl || obj._profilePicUrl || '',
+      obj.is_verified ?? obj.isVerified ?? obj._isVerified ?? false,
+      obj.is_private ?? obj.isPrivate ?? obj._isPrivate ?? false,
+      obj.follows_viewer ?? obj.followsViewer ?? obj._followsViewer ?? false
     );
   }
 

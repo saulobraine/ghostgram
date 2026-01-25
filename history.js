@@ -1,8 +1,9 @@
-import { dbService } from './src/bundle/services/DatabaseService.js';
-
 /**
  * Script para gerenciar a página de histórico global
+ * Usa chrome.storage.local diretamente para garantir compatibilidade
  */
+const STORAGE_KEY = 'ghostgram_actions_history';
+
 class HistoryPage {
   constructor() {
     this._tbody = document.getElementById('historyBody');
@@ -24,11 +25,30 @@ class HistoryPage {
 
   async loadHistory() {
     try {
-      const actions = await dbService.getAllActions();
+      const actions = await this._getAllActions();
+      console.log('[HistoryPage] Ações carregadas:', actions);
       this.renderActions(actions);
     } catch (error) {
       console.error('[HistoryPage] Erro ao carregar histórico:', error);
     }
+  }
+
+  async _getAllActions() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([STORAGE_KEY], (result) => {
+        const actions = result[STORAGE_KEY] || [];
+        // Ordena por timestamp decrescente (mais recente primeiro)
+        resolve(actions.sort((a, b) => b.timestamp - a.timestamp));
+      });
+    });
+  }
+
+  async _clearAllActions() {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [STORAGE_KEY]: [] }, () => {
+        resolve();
+      });
+    });
   }
 
   renderActions(actions) {
@@ -69,7 +89,7 @@ class HistoryPage {
 
   async handleClear() {
     if (confirm('Tem certeza que deseja limpar todo o histórico? Esta ação não pode ser desfeita.')) {
-      await dbService.clearHistory();
+      await this._clearAllActions();
       await this.loadHistory();
     }
   }

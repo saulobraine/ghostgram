@@ -1032,7 +1032,8 @@ html .iu button.unfollow {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   animation: slideUp 0.3s ease-out;
   overflow: hidden;
 }
@@ -1542,6 +1543,16 @@ html .iu button.unfollow {
 }
 
 /* Progress */
+.iu-progress-section,
+.iu-results-section {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+
 .iu-progress-label {
   margin: 0 0 12px 0 !important;
   font-size: 14px !important;
@@ -1831,6 +1842,42 @@ html .iu button.unfollow {
 }
 
 @keyframes ghostgram-slide-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modo Discreto (Stealth Mode) */
+.iu-stealth-mode .iu-toggle-button {
+  width: 40px !important;
+  height: 40px !important;
+  opacity: 0.5 !important;
+  transition: opacity 0.3s ease, transform 0.2s ease !important;
+}
+
+.iu-stealth-mode .iu-toggle-button:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+}
+
+.iu-stealth-mode .iu-toggle-button svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.iu-stealth-mode .iu-badge {
+  font-size: 9px !important;
+  min-width: 14px !important;
+  height: 14px !important;
+  padding: 0 4px !important;
+}
+
+.iu-stealth-mode .iu-content {
+  opacity: 0.95 !important;
+  max-width: 280px !important;
 }

@@ -35,7 +35,6 @@
     {
       "resources": [
         "content-main.js",
-        "floating-panel-app.js",
         "history.html",
         "history.js",
         "src/**/*.js"

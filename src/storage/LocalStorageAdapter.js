@@ -4,7 +4,10 @@ import { StorageAdapter } from './StorageAdapter.js';
 export class LocalStorageAdapter extends StorageAdapter {
   get(key) {
     return this._promisify(chrome.storage.local.get([key]))
-      .then(result => result[key] || null);
+      .then(result => {
+        // Usa verificação explícita porque result[key] pode ser false (valor válido)
+        return result[key] !== undefined ? result[key] : null;
+      });
   }
 
   set(key, value) {

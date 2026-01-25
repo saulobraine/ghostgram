@@ -7,7 +7,9 @@ class ContentScript {
   constructor() {
     this._initialized = false;
     this._container = null;
+    this._app = null;
     this._currentUrl = '';
+    this._isEnabled = false;
   }
 
   async initialize() {
@@ -27,15 +29,98 @@ class ContentScript {
     this._initialized = true;
     window.__GHOSTGRAM_INITIALIZED__ = true;
 
-    // Carrega o painel flutuante diretamente
-    await this._loadFloatingPanel();
+    // Configura listener para mensagens do popup
+    this._setupMessageListener();
+
+    // Verifica estado inicial e carrega o painel se ativado
+    await this._checkEnabledState();
 
     // Inicia monitoramento de URL para stories
     this._startUrlMonitor();
   }
 
+  /**
+   * Configura listener para mensagens do popup (toggle)
+   */
+  _setupMessageListener() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'toggle') {
+        this._handleToggle();
+        sendResponse({ success: true });
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Verifica o estado habilitado no storage
+   */
+  async _checkEnabledState() {
+    try {
+      const result = await chrome.storage.local.get('enabled');
+      // Se o valor é null/undefined, considera como ativado (mesmo comportamento de ExtensionState)
+      // Só considera desativado se explicitamente for false
+      this._isEnabled = result.enabled !== false;
+
+      console.log('[GhostGram] Estado inicial:', this._isEnabled ? 'Ativado' : 'Desativado');
+
+      if (this._isEnabled) {
+        await this._loadFloatingPanel();
+      }
+    } catch (error) {
+      console.error('[GhostGram] Erro ao verificar estado:', error);
+      // Em caso de erro, carrega por padrão
+      await this._loadFloatingPanel();
+    }
+  }
+
+  /**
+   * Trata mudança de estado do toggle
+   */
+  async _handleToggle() {
+    try {
+      const result = await chrome.storage.local.get('enabled');
+      // Mesma lógica: só é desativado se explicitamente false
+      this._isEnabled = result.enabled !== false;
+
+      console.log('[GhostGram] Toggle:', this._isEnabled ? 'Ativado' : 'Desativado');
+
+      if (this._isEnabled) {
+        await this._showPanel();
+      } else {
+        this._hidePanel();
+      }
+    } catch (error) {
+      console.error('[GhostGram] Erro ao processar toggle:', error);
+    }
+  }
+
+  /**
+   * Mostra o painel (carrega se necessário)
+   */
+  async _showPanel() {
+    if (!this._container || !this._app) {
+      await this._loadFloatingPanel();
+      return;
+    }
+
+    this._container.style.display = 'block';
+  }
+
+  /**
+   * Esconde o painel
+   */
+  _hidePanel() {
+    if (this._container) {
+      this._container.style.display = 'none';
+    }
+  }
+
   async _loadFloatingPanel() {
     try {
+      // Configura bridge de comunicação antes de carregar o app
+      this._setupCommunicationBridge();
+
       // Importa e inicializa o FloatingPanelApp
       const { FloatingPanelApp } = await import(
         chrome.runtime.getURL('src/bundle/FloatingPanelApp.js')
@@ -50,13 +135,54 @@ class ContentScript {
       }
 
       // Inicializa o app
-      const app = new FloatingPanelApp();
-      app.init(this._container);
+      this._app = new FloatingPanelApp();
+      await this._app.init(this._container);
 
       console.log('[GhostGram] Painel flutuante carregado com sucesso');
     } catch (error) {
       console.error('[GhostGram] Erro ao carregar painel:', error);
     }
+  }
+
+  /**
+   * Configura bridge de comunicação entre o app (contexto da página) e o background (via content script)
+   * O FloatingPanelApp roda no contexto da página e não tem acesso ao chrome.runtime
+   */
+  _setupCommunicationBridge() {
+    window.addEventListener('message', async (event) => {
+      // Ignora mensagens de outras origens
+      if (event.source !== window) {
+        return;
+      }
+
+      // Processa apenas mensagens do GhostGram
+      if (event.data?.type !== 'GHOSTGRAM_TO_BACKGROUND') {
+        return;
+      }
+
+      const { action, payload } = event.data;
+      console.log('[GhostGram Bridge] Encaminhando para background:', action);
+
+      try {
+        const response = await chrome.runtime.sendMessage({ action, ...payload });
+
+        // Envia resposta de volta para o app
+        window.postMessage({
+          type: 'GHOSTGRAM_FROM_BACKGROUND',
+          action,
+          response,
+          success: true
+        }, '*');
+      } catch (error) {
+        console.error('[GhostGram Bridge] Erro:', error);
+        window.postMessage({
+          type: 'GHOSTGRAM_FROM_BACKGROUND',
+          action,
+          error: error.message,
+          success: false
+        }, '*');
+      }
+    });
   }
 
   /**
@@ -87,7 +213,7 @@ class ContentScript {
    * Verifica URL e oculta/mostra widget conforme necessário
    */
   _checkUrl() {
-    if (!this._container) {
+    if (!this._container || !this._isEnabled) {
       return;
     }
 

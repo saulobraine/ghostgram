@@ -10,6 +10,8 @@ export class MessageRouter {
   }
 
   async route(request, sender, sendResponse) {
+    console.log('[MessageRouter] Mensagem recebida:', request.action);
+
     if (request.action === MESSAGE_ACTIONS.GET_STATUS) {
       await this._handleGetStatus(sendResponse);
       return true;
@@ -19,6 +21,7 @@ export class MessageRouter {
       return true;
     }
     if (request.action === MESSAGE_ACTIONS.OPEN_HISTORY) {
+      console.log('[MessageRouter] Processando openHistory...');
       await this._handleOpenHistory(sendResponse);
       return true;
     }
