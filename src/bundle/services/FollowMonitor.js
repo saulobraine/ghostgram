@@ -45,17 +45,15 @@ export class FollowMonitor {
     const isFollowAction = text.trim() === 'Seguir' || text.trim() === 'Follow';
 
     if (isFollowAction) {
-      this._interceptFollow(button);
+      this._checkUnfollowHistory(button);
     }
   }
 
   /**
-   * Tenta identificar o usuário que está sendo seguido e registra o log
+   * Verifica se o usuário já foi deixado de seguir pela ferramenta e avisa o usuário
    */
-  async _interceptFollow(button) {
+  async _checkUnfollowHistory(button) {
     try {
-      // Tenta encontrar o nome de usuário próximo ao botão
-      // No Instagram, o username geralmente está em um header ou link próximo
       let username = this._extractUsernameFromContext(button);
 
       if (!username) {
@@ -65,18 +63,24 @@ export class FollowMonitor {
         }
       }
 
-      if (username && username !== 'explore' && username !== 'reels' && username !== 'direct') {
-        console.log(`[FollowMonitor] Detectado "Seguir" para: ${username}`);
+      if (username && !['explore', 'reels', 'direct', 'stories'].includes(username)) {
+        const allActions = await dbService.getAllActions();
+        const prevUnfollow = allActions.find(a =>
+          a.username === username &&
+          a.actionType === 'unfollow' &&
+          a.source === 'auto'
+        );
 
-        await dbService.logAction({
-          userId: 'manual_trace', // ID real é difícil de pegar via DOM sem API
-          username: username,
-          actionType: 'follow',
-          source: 'manual'
-        });
+        if (prevUnfollow) {
+          const date = new Date(prevUnfollow.timestamp).toLocaleDateString('pt-BR');
+          console.log(`[FollowMonitor] Aviso: Usuário ${username} já foi removido pelo GhostGram em ${date}`);
+
+          // Usamos um alert para garantir que o usuário veja o aviso
+          alert(`Atenção: Você está tentando seguir @${username}, mas já deixou de seguir este usuário usando o GhostGram em ${date}.`);
+        }
       }
     } catch (error) {
-      console.error('[FollowMonitor] Erro ao interceptar follow:', error);
+      console.error('[FollowMonitor] Erro ao verificar histórico:', error);
     }
   }
 

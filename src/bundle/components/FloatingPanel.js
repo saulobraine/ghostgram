@@ -1,6 +1,7 @@
 // FloatingPanel - Componente de painel flutuante com atualização incremental
 import { createElement } from '../utils/DOMRenderer.js';
 import { Logo } from './Logo.js';
+import { STORAGE_KEYS } from '../../constants/Constants.js';
 
 /**
  * Painel flutuante para exibir não-seguidores do Instagram
@@ -40,16 +41,32 @@ export class FloatingPanel {
     this._onMouseDown = this._onMouseDown.bind(this);
     this._onMouseMove = this._onMouseMove.bind(this);
     this._onMouseUp = this._onMouseUp.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
+
+    // Inicia observer de redimensionamento
+    this._setupResizeObserver();
   }
 
   /**
    * Carrega posição salva do localStorage
+   * Valida os limites para garantir que o painel fique visível
    */
   _loadPosition() {
     try {
-      const saved = localStorage.getItem('ghostgram_panel_position');
+      const saved = localStorage.getItem(STORAGE_KEYS.PANEL_POSITION_STORAGE);
       if (saved) {
-        return JSON.parse(saved);
+        const pos = JSON.parse(saved);
+        // Valida se a posição está dentro dos limites da tela
+        if (pos.left !== undefined) {
+          const margin = 10;
+          const maxX = Math.max(margin, window.innerWidth - 320 - margin);
+          const maxY = Math.max(margin, window.innerHeight - 400 - margin);
+          return {
+            left: Math.max(margin, Math.min(pos.left, maxX)),
+            top: Math.max(margin, Math.min(pos.top, maxY))
+          };
+        }
+        return pos;
       }
     } catch (e) {
       // Ignora erro
@@ -62,10 +79,53 @@ export class FloatingPanel {
    */
   _savePosition() {
     try {
-      localStorage.setItem('ghostgram_panel_position', JSON.stringify(this._position));
+      localStorage.setItem(STORAGE_KEYS.PANEL_POSITION_STORAGE, JSON.stringify(this._position));
     } catch (e) {
       // Ignora erro
     }
+  }
+
+  /**
+   * Configura observer de redimensionamento da janela
+   */
+  _setupResizeObserver() {
+    window.addEventListener('resize', this._onWindowResize);
+  }
+
+  /**
+   * Handler de redimensionamento da janela
+   * Garante que o painel permaneça visível na tela e atualiza limites de drag
+   */
+  _onWindowResize() {
+    // Usa debounce para evitar chamadas excessivas durante resize
+    if (this._resizeTimeout) {
+      clearTimeout(this._resizeTimeout);
+    }
+
+    this._resizeTimeout = setTimeout(() => {
+      this._updateDragBounds();
+      this._constrainPosition();
+    }, 100);
+  }
+
+  /**
+   * Atualiza os limites de drag baseado nas dimensões atuais da página
+   * Chamado automaticamente no resize da janela
+   */
+  _updateDragBounds() {
+    if (!this.element) return;
+
+    // Recalcula os limites máximos baseados na janela atual
+    const width = this.element.offsetWidth || (this.element.classList.contains('iu-expanded') ? 320 : 64);
+    const height = this.element.offsetHeight || (this.element.classList.contains('iu-expanded') ? 400 : 64);
+
+    // Armazena limites para uso no drag
+    this._dragBounds = {
+      minX: 10,
+      minY: 10,
+      maxX: Math.max(10, window.innerWidth - width - 10),
+      maxY: Math.max(10, window.innerHeight - height - 10)
+    };
   }
 
   /**
@@ -79,14 +139,13 @@ export class FloatingPanel {
       className: 'iu-floating-panel' + (props.isExpanded ? ' iu-expanded' : '')
     });
 
-    // Aplica posição salva
+    // Aplica posição salva (já validada no _loadPosition)
     this._applyPosition();
 
     if (props.isExpanded) {
       // Modo expandido: mostra apenas a janela (arrastável pelo header)
       this._refs.content = this._createContent(props);
       this.element.appendChild(this._refs.content);
-      setTimeout(() => this._constrainPosition(), 0);
     } else {
       // Modo minimizado: mostra apenas o botão
       this._refs.toggleButton = this._createToggleButton(props);
@@ -98,16 +157,32 @@ export class FloatingPanel {
 
   /**
    * Aplica posição salva ao elemento
+   * Converte right/bottom para left/top para facilitar o controle de limites
    */
   _applyPosition() {
+    const margin = 10;
+
     if (this._position.left !== undefined) {
+      // Posição já em left/top - aplica diretamente
       this.element.style.left = `${this._position.left}px`;
       this.element.style.top = `${this._position.top}px`;
       this.element.style.right = 'auto';
       this.element.style.bottom = 'auto';
     } else {
-      this.element.style.right = `${this._position.right}px`;
-      this.element.style.bottom = `${this._position.bottom}px`;
+      // Converte right/bottom para left/top
+      const width = this.element.classList.contains('iu-expanded') ? 320 : 64;
+      const height = this.element.classList.contains('iu-expanded') ? 400 : 64;
+
+      const left = Math.max(margin, window.innerWidth - width - (this._position.right || 20));
+      const top = Math.max(margin, window.innerHeight - height - (this._position.bottom || 20));
+
+      this.element.style.left = `${left}px`;
+      this.element.style.top = `${top}px`;
+      this.element.style.right = 'auto';
+      this.element.style.bottom = 'auto';
+
+      // Atualiza para usar left/top internamente
+      this._position = { left, top };
     }
   }
 
@@ -177,10 +252,19 @@ export class FloatingPanel {
       props.isScanning !== prevProps.isScanning ||
       props.isScanCompleted !== prevProps.isScanCompleted ||
       props.isUnfollowing !== prevProps.isUnfollowing ||
-      props.isPaused !== prevProps.isPaused; // Também verifica mudança de pausa
+      props.isPaused !== prevProps.isPaused;
 
-    // Se mudou de estado, recria as seções
+    // Detecta mudanças que requerem recriação da seção de resultados
+    const resultsNeedUpdate =
+      props.activeTab !== prevProps.activeTab ||
+      props.whitelist?.size !== prevProps.whitelist?.size ||
+      props.searchQuery !== prevProps.searchQuery;
+
+    // Se mudou de estado principal, recria as seções preservando a posição
     if (stateChanged) {
+      // Salva posição atual antes de recriar seções
+      const savedPosition = this._preservePosition();
+
       this._clearSections();
 
       if (!props.isScanning && !props.isScanCompleted && !props.isUnfollowing) {
@@ -196,6 +280,28 @@ export class FloatingPanel {
         this._refs.resultsSection = this._createResultsSection(props);
         this._refs.content.appendChild(this._refs.resultsSection);
       }
+
+      // Restaura posição após recriar seções
+      this._restorePosition(savedPosition);
+      return;
+    }
+
+    // Se mudou tab, whitelist ou busca durante resultados, recria apenas a seção de resultados
+    if (resultsNeedUpdate && props.isScanCompleted && this._refs.resultsSection) {
+      const savedPosition = this._preservePosition();
+
+      this._refs.resultsSection.remove();
+      this._refs.resultsSection = null;
+      this._refs.userList = null;
+      this._refs.resultsHeader = null;
+      this._refs.selectedCount = null;
+      this._refs.unfollowBtn = null;
+      this._renderedUserIds.clear();
+
+      this._refs.resultsSection = this._createResultsSection(props);
+      this._refs.content.appendChild(this._refs.resultsSection);
+
+      this._restorePosition(savedPosition);
       return;
     }
 
@@ -203,6 +309,7 @@ export class FloatingPanel {
     if (props.isScanning && this._refs.progressBar) {
       this._updateProgress(props.scanProgress);
       this._updateUserList(props);
+      this._updateSelectedCount(props, this._refs.progressSection);
     }
 
     // Atualiza progresso do unfollow
@@ -210,7 +317,7 @@ export class FloatingPanel {
       this._updateProgress(props.unfollowProgress);
     }
 
-    // Atualiza lista de resultados
+    // Atualiza lista de resultados (apenas contadores, não recria lista)
     if (props.isScanCompleted && this._refs.userList) {
       this._updateSelectedCount(props);
     }
@@ -239,7 +346,8 @@ export class FloatingPanel {
     // Adiciona apenas novos usuários
     props.nonFollowers.forEach(user => {
       if (!this._renderedUserIds.has(user.getId())) {
-        const userItem = this._createUserItem(user, false, props.onToggleUser);
+        const isSelected = props.selectedUsers.has(user.getId());
+        const userItem = this._createUserItem(user, isSelected, props.onToggleUser);
         this._refs.userList.appendChild(userItem);
         this._renderedUserIds.add(user.getId());
       }
@@ -257,21 +365,25 @@ export class FloatingPanel {
   /**
    * Atualiza contador de selecionados
    */
-  _updateSelectedCount(props) {
+  _updateSelectedCount(props, targetSection = null) {
     if (this._refs.selectedCount) {
       this._refs.selectedCount.textContent = `${props.selectedUsers.size} selecionados`;
     }
 
+    const section = targetSection || this._refs.resultsSection;
+
     // Atualiza botão unfollow
-    if (props.selectedUsers.size > 0) {
+    if (props.nonFollowers.length > 0 && section) {
       if (!this._refs.unfollowBtn) {
         this._refs.unfollowBtn = createElement('button', {
           className: 'iu-button iu-button-danger',
-          onClick: props.onStartUnfollow
+          onClick: props.onStartUnfollow,
+          disabled: props.selectedUsers.size === 0
         }, `Deixar de seguir (${props.selectedUsers.size})`);
-        this._refs.resultsSection.appendChild(this._refs.unfollowBtn);
+        section.appendChild(this._refs.unfollowBtn);
       } else {
         this._refs.unfollowBtn.textContent = `Deixar de seguir (${props.selectedUsers.size})`;
+        this._refs.unfollowBtn.disabled = props.selectedUsers.size === 0;
       }
     } else if (this._refs.unfollowBtn) {
       this._refs.unfollowBtn.remove();
@@ -358,9 +470,9 @@ export class FloatingPanel {
       className: 'iu-toggle-button'
     });
 
-    // Eventos de drag
-    button.addEventListener('mousedown', this._onMouseDown);
-    button.addEventListener('touchstart', this._onTouchStart.bind(this), { passive: false });
+    // Eventos de drag (isToggleButton = true para permitir toggle ao clicar)
+    button.addEventListener('mousedown', (e) => this._onMouseDown(e, true));
+    button.addEventListener('touchstart', (e) => this._onTouchStart(e, true), { passive: false });
 
     const logoSvg = Logo();
     button.appendChild(logoSvg);
@@ -377,13 +489,16 @@ export class FloatingPanel {
 
   /**
    * Handler de mousedown para iniciar drag
+   * @param {MouseEvent} e - Evento de mouse
+   * @param {boolean} isToggleButton - Se o drag foi iniciado no botão toggle
    */
-  _onMouseDown(e) {
+  _onMouseDown(e, isToggleButton = false) {
     // Ignora clique direito
     if (e.button !== 0) return;
 
     this._isDragging = true;
     this._hasMoved = false;
+    this._isToggleButtonDrag = isToggleButton;
     this._dragStartX = e.clientX;
     this._dragStartY = e.clientY;
 
@@ -399,13 +514,16 @@ export class FloatingPanel {
 
   /**
    * Handler de touchstart para mobile
+   * @param {TouchEvent} e - Evento de touch
+   * @param {boolean} isToggleButton - Se o drag foi iniciado no botão toggle
    */
-  _onTouchStart(e) {
+  _onTouchStart(e, isToggleButton = false) {
     if (e.touches.length !== 1) return;
 
     const touch = e.touches[0];
     this._isDragging = true;
     this._hasMoved = false;
+    this._isToggleButtonDrag = isToggleButton;
     this._dragStartX = touch.clientX;
     this._dragStartY = touch.clientY;
 
@@ -465,20 +583,21 @@ export class FloatingPanel {
     const newX = this._elementStartX + deltaX;
     const newY = this._elementStartY + deltaY;
 
-    // Dimensões reais do elemento
-    const width = this.element.offsetWidth;
-    const height = this.element.offsetHeight;
+    // Atualiza limites de drag se não existirem
+    if (!this._dragBounds) {
+      this._updateDragBounds();
+    }
 
-    // Fallback para dimensões se o elemento não estiver visível ou carregado
-    const realWidth = width || (this.element.classList.contains('iu-expanded') ? 320 : 64);
-    const realHeight = height || (this.element.classList.contains('iu-expanded') ? 400 : 64);
+    // Usa limites calculados ou recalcula se necessário
+    const bounds = this._dragBounds || {
+      minX: 10,
+      minY: 10,
+      maxX: window.innerWidth - (this.element.offsetWidth || 64) - 10,
+      maxY: window.innerHeight - (this.element.offsetHeight || 64) - 10
+    };
 
-    // Limites da tela com margem de 10px
-    const maxX = window.innerWidth - realWidth - 10;
-    const maxY = window.innerHeight - realHeight - 10;
-
-    const clampedX = Math.max(10, Math.min(newX, maxX));
-    const clampedY = Math.max(10, Math.min(newY, maxY));
+    const clampedX = Math.max(bounds.minX, Math.min(newX, bounds.maxX));
+    const clampedY = Math.max(bounds.minY, Math.min(newY, bounds.maxY));
 
     // Força left/top para drag
     this.element.style.left = `${clampedX}px`;
@@ -491,28 +610,87 @@ export class FloatingPanel {
   }
 
   /**
+   * Preserva a posição atual do elemento
+   * @returns {Object} Posição salva para restauração posterior
+   */
+  _preservePosition() {
+    if (!this.element) return null;
+
+    const rect = this.element.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top
+    };
+  }
+
+  /**
+   * Restaura a posição do elemento
+   * @param {Object} savedPosition - Posição a ser restaurada
+   */
+  _restorePosition(savedPosition) {
+    if (!this.element || !savedPosition) return;
+
+    // Valida os limites antes de aplicar
+    const width = this.element.offsetWidth || (this.element.classList.contains('iu-expanded') ? 320 : 64);
+    const height = this.element.offsetHeight || (this.element.classList.contains('iu-expanded') ? 400 : 64);
+    const margin = 10;
+    const maxX = Math.max(margin, window.innerWidth - width - margin);
+    const maxY = Math.max(margin, window.innerHeight - height - margin);
+
+    const clampedX = Math.max(margin, Math.min(savedPosition.left, maxX));
+    const clampedY = Math.max(margin, Math.min(savedPosition.top, maxY));
+
+    // Aplica a posição validada
+    this.element.style.left = `${clampedX}px`;
+    this.element.style.top = `${clampedY}px`;
+    this.element.style.right = 'auto';
+    this.element.style.bottom = 'auto';
+
+    // Atualiza o estado interno
+    this._position = { left: clampedX, top: clampedY };
+  }
+
+  /**
    * Garante que o elemento está visível na tela
+   * Força a correção da posição para manter o painel dentro dos limites da página
    */
   _constrainPosition() {
     if (!this.element) return;
 
     const rect = this.element.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    const width = rect.width || (this.element.classList.contains('iu-expanded') ? 320 : 64);
+    const height = rect.height || (this.element.classList.contains('iu-expanded') ? 400 : 64);
 
-    const maxX = window.innerWidth - width - 10;
-    const maxY = window.innerHeight - height - 10;
+    // Calcula limites máximos (margem de 10px)
+    const margin = 10;
+    const maxX = Math.max(margin, window.innerWidth - width - margin);
+    const maxY = Math.max(margin, window.innerHeight - height - margin);
 
-    const clampedX = Math.max(10, Math.min(rect.left, maxX));
-    const clampedY = Math.max(10, Math.min(rect.top, maxY));
+    // Calcula posição atual
+    let currentX = rect.left;
+    let currentY = rect.top;
 
-    if (clampedX !== rect.left || clampedY !== rect.top) {
-      this.element.style.left = `${clampedX}px`;
-      this.element.style.top = `${clampedY}px`;
-      this.element.style.right = 'auto';
-      this.element.style.bottom = 'auto';
+    // Se a posição ainda não foi definida corretamente, usa a posição salva
+    if (this._position && this._position.left !== undefined) {
+      currentX = this._position.left;
+      currentY = this._position.top;
+    }
 
-      this._position = { left: clampedX, top: clampedY };
+    // Força os limites
+    const clampedX = Math.max(margin, Math.min(currentX, maxX));
+    const clampedY = Math.max(margin, Math.min(currentY, maxY));
+
+    // Sempre aplica a posição para garantir consistência
+    this.element.style.left = `${clampedX}px`;
+    this.element.style.top = `${clampedY}px`;
+    this.element.style.right = 'auto';
+    this.element.style.bottom = 'auto';
+
+    // Atualiza estado interno
+    this._position = { left: clampedX, top: clampedY };
+
+    // Salva apenas se a posição mudou
+    if (clampedX !== currentX || clampedY !== currentY) {
       this._savePosition();
     }
   }
@@ -524,8 +702,8 @@ export class FloatingPanel {
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('mouseup', this._onMouseUp);
 
-    // Se não moveu, trata como click
-    if (!this._hasMoved && this._props) {
+    // Se não moveu e foi no botão toggle, trata como click para expandir/minimizar
+    if (!this._hasMoved && this._isToggleButtonDrag && this._props) {
       this._props.onToggle();
     }
 
@@ -534,6 +712,7 @@ export class FloatingPanel {
     }
 
     this._isDragging = false;
+    this._isToggleButtonDrag = false;
   }
 
   /**
@@ -543,7 +722,8 @@ export class FloatingPanel {
     document.removeEventListener('touchmove', this._onTouchMove);
     document.removeEventListener('touchend', this._onTouchEnd);
 
-    if (!this._hasMoved && this._props) {
+    // Se não moveu e foi no botão toggle, trata como click para expandir/minimizar
+    if (!this._hasMoved && this._isToggleButtonDrag && this._props) {
       this._props.onToggle();
     }
 
@@ -552,6 +732,7 @@ export class FloatingPanel {
     }
 
     this._isDragging = false;
+    this._isToggleButtonDrag = false;
   }
 
   /**
@@ -713,20 +894,43 @@ export class FloatingPanel {
 
     section.appendChild(controls);
 
+    // Campo de pesquisa (só mostra se tiver 2 ou mais usuários)
+    if (props.nonFollowers.length >= 2) {
+      const searchContainer = createElement('div', { className: 'iu-search-container' });
+      const searchInput = createElement('input', {
+        type: 'text',
+        className: 'iu-search-input',
+        placeholder: '🔍 Buscar usuário...',
+        value: props.searchQuery || '',
+        onInput: (e) => props.onSearch(e.target.value)
+      });
+      searchContainer.appendChild(searchInput);
+      section.appendChild(searchContainer);
+    }
+
     // Header da lista
     this._refs.resultsHeader = createElement('div', { className: 'iu-results-header' },
-      createElement('span', { className: 'iu-count' }, `${props.nonFollowers.length} encontrados`)
+      createElement('span', { className: 'iu-count' }, `${props.nonFollowers.length} encontrados`),
+      createElement('span', { className: 'iu-selected-count' }, `${props.selectedUsers.size} selecionados`)
     );
+    this._refs.selectedCount = this._refs.resultsHeader.querySelector('.iu-selected-count');
     section.appendChild(this._refs.resultsHeader);
+
+    // Filtra usuários se houver busca
+    const filteredUsers = this._filterUsersBySearch(props.nonFollowers, props.searchQuery);
 
     // Lista de usuários (será atualizada incrementalmente)
     this._refs.userList = createElement('div', { className: 'iu-user-list' });
-    props.nonFollowers.forEach(user => {
-      const userItem = this._createUserItem(user, false, props.onToggleUser);
+    filteredUsers.forEach(user => {
+      const isSelected = props.selectedUsers.has(user.getId());
+      const userItem = this._createUserItem(user, isSelected, props.onToggleUser);
       this._refs.userList.appendChild(userItem);
       this._renderedUserIds.add(user.getId());
     });
     section.appendChild(this._refs.userList);
+
+    // Adiciona o botão de unfollow inicial (que será atualizado pelo updateSelectedCount)
+    this._updateSelectedCount(props, section);
 
     return section;
   }
@@ -778,17 +982,20 @@ export class FloatingPanel {
 
     section.appendChild(tabs);
 
-    // Campo de pesquisa
-    const searchContainer = createElement('div', { className: 'iu-search-container' });
-    const searchInput = createElement('input', {
-      type: 'text',
-      className: 'iu-search-input',
-      placeholder: '🔍 Buscar usuário...',
-      value: props.searchQuery || '',
-      onInput: (e) => props.onSearch(e.target.value)
-    });
-    searchContainer.appendChild(searchInput);
-    section.appendChild(searchContainer);
+    // Campo de pesquisa (só mostra se tiver 2 ou mais usuários)
+    const totalUsers = props.nonFollowers.length + (props.whitelist?.size || 0);
+    if (totalUsers >= 2) {
+      const searchContainer = createElement('div', { className: 'iu-search-container' });
+      const searchInput = createElement('input', {
+        type: 'text',
+        className: 'iu-search-input',
+        placeholder: '🔍 Buscar usuário...',
+        value: props.searchQuery || '',
+        onInput: (e) => props.onSearch(e.target.value)
+      });
+      searchContainer.appendChild(searchInput);
+      section.appendChild(searchContainer);
+    }
 
     // Conteúdo baseado na aba ativa
     if (props.activeTab === 'whitelist') {
@@ -846,10 +1053,11 @@ export class FloatingPanel {
     footer.appendChild(selectAllBtn);
 
     // Botão de unfollow
-    if (props.selectedUsers.size > 0) {
+    if (filteredUsers.length > 0) {
       this._refs.unfollowBtn = createElement('button', {
         className: 'iu-button iu-button-danger',
-        onClick: props.onStartUnfollow
+        onClick: props.onStartUnfollow,
+        disabled: props.selectedUsers.size === 0
       }, `Deixar de seguir (${props.selectedUsers.size})`);
       footer.appendChild(this._refs.unfollowBtn);
     }

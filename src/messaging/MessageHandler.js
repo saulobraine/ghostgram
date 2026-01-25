@@ -1,14 +1,28 @@
 // MessageHandler - Strategy pattern for message actions (OCP: Open/Closed)
-import { MESSAGE_ACTIONS } from '../constants/Constants.js';
+import { MESSAGE_ACTIONS, MESSAGE_TYPES, STORAGE_KEYS } from '../constants/Constants.js';
 import { ExtensionState } from '../domain/ExtensionState.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
 
+/**
+ * Handler responsável por processar mensagens entre diferentes contextos da extensão
+ * Implementa padrão Strategy para diferentes ações de mensagem
+ */
 export class MessageHandler {
+  /**
+   * @param {LocalStorageAdapter} storageAdapter - Adapter de storage (opcional)
+   */
   constructor(storageAdapter) {
     this._storage = storageAdapter || new LocalStorageAdapter();
     this._handlers = this._createHandlers();
   }
 
+  /**
+   * Processa uma mensagem recebida
+   * @param {Object} request - Objeto de requisição com action
+   * @param {Object} sender - Informações do remetente
+   * @param {Function} sendResponse - Função para enviar resposta
+   * @returns {boolean} True se a mensagem foi processada
+   */
   handle(request, sender, sendResponse) {
     const handler = this._handlers[request.action];
     if (!handler) {
@@ -55,12 +69,12 @@ export class MessageHandler {
   }
 
   _getCurrentState() {
-    return this._storage.get('enabled')
+    return this._storage.get(STORAGE_KEYS.ENABLED)
       .then(value => ExtensionState.fromStorageValue(value));
   }
 
   _saveState(state) {
-    return this._storage.set('enabled', state.toStorageValue());
+    return this._storage.set(STORAGE_KEYS.ENABLED, state.toStorageValue());
   }
 
   _reloadPage() {
@@ -71,7 +85,7 @@ export class MessageHandler {
     // Envia mensagem para o FloatingPanelApp
     try {
       window.postMessage({
-        type: 'INSTAGRAM_UNFOLLOWERS_START_SCAN',
+        type: MESSAGE_TYPES.INSTAGRAM_UNFOLLOWERS_START_SCAN,
         source: 'content-script'
       }, '*');
 
