@@ -2,28 +2,48 @@
 import { MESSAGE_ACTIONS, MESSAGE_TYPES, STORAGE_KEYS } from '../constants/Constants.js';
 import { ExtensionState } from '../domain/ExtensionState.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
+import type { StorageAdapter } from '../storage/StorageAdapter.js';
+
+interface MessageRequest {
+  action: string;
+  enabled?: boolean;
+  [key: string]: any;
+}
+
+type MessageHandlerFunction = (
+  request: MessageRequest,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: (response?: any) => void
+) => void;
 
 /**
  * Handler responsável por processar mensagens entre diferentes contextos da extensão
  * Implementa padrão Strategy para diferentes ações de mensagem
  */
 export class MessageHandler {
+  private _storage: StorageAdapter;
+  private _handlers: Record<string, MessageHandlerFunction>;
+
   /**
-   * @param {LocalStorageAdapter} storageAdapter - Adapter de storage (opcional)
+   * @param storageAdapter - Adapter de storage (opcional)
    */
-  constructor(storageAdapter) {
+  constructor(storageAdapter?: StorageAdapter) {
     this._storage = storageAdapter || new LocalStorageAdapter();
     this._handlers = this._createHandlers();
   }
 
   /**
    * Processa uma mensagem recebida
-   * @param {Object} request - Objeto de requisição com action
-   * @param {Object} sender - Informações do remetente
-   * @param {Function} sendResponse - Função para enviar resposta
-   * @returns {boolean} True se a mensagem foi processada
+   * @param request - Objeto de requisição com action
+   * @param sender - Informações do remetente
+   * @param sendResponse - Função para enviar resposta
+   * @returns True se a mensagem foi processada
    */
-  handle(request, sender, sendResponse) {
+  handle(
+    request: MessageRequest,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): boolean {
     const handler = this._handlers[request.action];
     if (!handler) {
       return false;
@@ -32,20 +52,20 @@ export class MessageHandler {
     return true;
   }
 
-  _createHandlers() {
+  private _createHandlers(): Record<string, MessageHandlerFunction> {
     return {
-      [MESSAGE_ACTIONS.TOGGLE]: (request, sender, sendResponse) => 
+      [MESSAGE_ACTIONS.TOGGLE]: (_request, _sender, sendResponse) => 
         this._handleToggle(sendResponse),
-      [MESSAGE_ACTIONS.GET_STATUS]: (request, sender, sendResponse) => 
+      [MESSAGE_ACTIONS.GET_STATUS]: (_request, _sender, sendResponse) => 
         this._handleGetStatus(sendResponse),
-      [MESSAGE_ACTIONS.UPDATE_STATUS]: (request, sender, sendResponse) => 
+      [MESSAGE_ACTIONS.UPDATE_STATUS]: (request, _sender, sendResponse) => 
         this._handleUpdateStatus(request, sendResponse),
-      [MESSAGE_ACTIONS.START_SCAN]: (request, sender, sendResponse) =>
+      [MESSAGE_ACTIONS.START_SCAN]: (_request, _sender, sendResponse) =>
         this._handleStartScan(sendResponse)
     };
   }
 
-  _handleToggle(sendResponse) {
+  private _handleToggle(sendResponse: (response?: any) => void): void {
     this._getCurrentState().then(state => {
       const newState = state.toggle();
       this._saveState(newState).then(() => {
@@ -55,33 +75,36 @@ export class MessageHandler {
     });
   }
 
-  _handleGetStatus(sendResponse) {
+  private _handleGetStatus(sendResponse: (response?: any) => void): void {
     this._getCurrentState().then(state => {
       sendResponse({ enabled: state.isEnabled() });
     });
   }
 
-  _handleUpdateStatus(request, sendResponse) {
+  private _handleUpdateStatus(
+    request: MessageRequest,
+    sendResponse: (response?: any) => void
+  ): void {
     const state = ExtensionState.fromStorageValue(request.enabled);
     this._saveState(state).then(() => {
       sendResponse({ success: true });
     });
   }
 
-  _getCurrentState() {
+  private _getCurrentState(): Promise<ExtensionState> {
     return this._storage.get(STORAGE_KEYS.ENABLED)
       .then(value => ExtensionState.fromStorageValue(value));
   }
 
-  _saveState(state) {
-    return this._storage.set(STORAGE_KEYS.ENABLED, state.toStorageValue());
+  private _saveState(state: ExtensionState): Promise<void> {
+    return this._storage.set(STORAGE_KEYS.ENABLED, state.toStorageValue()) as Promise<void>;
   }
 
-  _reloadPage() {
+  private _reloadPage(): void {
     location.reload();
   }
 
-  _handleStartScan(sendResponse) {
+  private _handleStartScan(sendResponse: (response?: any) => void): boolean {
     // Envia mensagem para o FloatingPanelApp
     try {
       window.postMessage({
@@ -91,12 +114,11 @@ export class MessageHandler {
 
       sendResponse({ success: true });
     } catch (error) {
+      const err = error as Error;
       console.error('Erro ao enviar mensagem para FloatingPanelApp:', error);
-      sendResponse({ success: false, error: error.message });
+      sendResponse({ success: false, error: err.message });
     }
 
     return true; // Indica resposta assíncrona
   }
-
 }
-

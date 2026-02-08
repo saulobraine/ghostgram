@@ -1,12 +1,17 @@
 // BundleInjector - SRP: Single Responsibility (inject bundle script)
 import { BUNDLE_SCRIPT_NAME } from '../constants/Constants.js';
 
+/**
+ * Injetor responsável por injetar o bundle script na página
+ */
 export class BundleInjector {
-  constructor(chromeRuntime) {
+  private _chromeRuntime: typeof chrome.runtime;
+
+  constructor(chromeRuntime: typeof chrome.runtime = chrome.runtime) {
     this._chromeRuntime = chromeRuntime;
   }
 
-  inject() {
+  inject(): void {
     console.log('[BundleInjector] Tentando injetar bundle...');
     console.log('[BundleInjector] Document ready state:', document.readyState);
     if (this._isDocumentReady()) {
@@ -18,15 +23,15 @@ export class BundleInjector {
     this._waitForDocumentReady();
   }
 
-  _isDocumentReady() {
+  private _isDocumentReady(): boolean {
     return document.readyState !== 'loading';
   }
 
-  _waitForDocumentReady() {
+  private _waitForDocumentReady(): void {
     document.addEventListener('DOMContentLoaded', () => this._execute());
   }
 
-  _execute() {
+  private _execute(): void {
     console.log('[BundleInjector] Executando injeção...');
     const script = this._createScript();
     console.log('[BundleInjector] Script criado:', script.src);
@@ -34,7 +39,7 @@ export class BundleInjector {
     console.log('[BundleInjector] Script anexado ao DOM');
   }
 
-  _createScript() {
+  private _createScript(): HTMLScriptElement {
     const script = document.createElement('script');
     const url = this._chromeRuntime.getURL(BUNDLE_SCRIPT_NAME);
     script.src = url;
@@ -43,19 +48,18 @@ export class BundleInjector {
       console.log('[BundleInjector] Bundle carregado com sucesso!');
       script.remove();
     };
-    script.onerror = (error) => {
+    script.onerror = (error: Event | string) => {
       console.error('[BundleInjector] Erro ao carregar bundle:', error);
       this._handleError();
     };
     return script;
   }
 
-  _attachScript(script) {
+  private _attachScript(script: HTMLScriptElement): void {
     (document.head || document.documentElement).appendChild(script);
   }
 
-  _handleError() {
+  private _handleError(): void {
     console.error('Failed to load bundle.js. Make sure the original bundle code is in bundle.js');
   }
 }
-
