@@ -2,22 +2,28 @@
 import { Settings } from '../domain/Settings.js';
 import { SyncStorageAdapter } from '../storage/SyncStorageAdapter.js';
 import { SETTINGS_KEYS } from '../constants/Constants.js';
+import type { StorageAdapter } from '../storage/StorageAdapter.js';
 
+/**
+ * Loader responsável por carregar configurações do storage
+ */
 export class SettingsLoader {
-  constructor(storageAdapter) {
+  private _storage: StorageAdapter;
+
+  constructor(storageAdapter?: StorageAdapter) {
     this._storage = storageAdapter || new SyncStorageAdapter();
   }
 
-  async load() {
+  async load(): Promise<Settings> {
     const stored = await this._getStoredSettings();
     return Settings.fromObject(stored);
   }
 
-  async _getStoredSettings() {
-    return await this._storage.getAll();
+  private async _getStoredSettings(): Promise<Record<string, any>> {
+    return await this._storage.getAll() as Record<string, any>;
   }
 
-  populateForm(settings, formElement) {
+  populateForm(settings: Settings, formElement: HTMLFormElement): void {
     this._setInputValue(SETTINGS_KEYS.TIME_BETWEEN_SEARCH_CYCLES,
       settings.getTimeBetweenSearchCycles(), formElement);
     this._setInputValue(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_SEARCH_CYCLES,
@@ -40,11 +46,10 @@ export class SettingsLoader {
       settings.getInstagramUnfollowBaseUrl(), formElement);
   }
 
-  _setInputValue(key, value, formElement) {
-    const input = formElement.querySelector(`#${key}`);
+  private _setInputValue(key: string, value: any, formElement: HTMLFormElement): void {
+    const input = formElement.querySelector(`#${key}`) as HTMLInputElement | null;
     if (input) {
       input.value = value;
     }
   }
 }
-
