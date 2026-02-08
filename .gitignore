@@ -37,18 +37,7 @@ yarn-error.log*
 # Snapshots
 **/__snapshots__/
 
-.cursor/rules/00-overview.mdc
-.cursor/rules/10-key-principles.mdc
-.cursor/rules/15-solid-and-object-calisthenics.mdc
-.cursor/rules/22-psr-standards.mdc
-.cursor/rules/25-overengineering.mdc
-.cursor/rules/30-dependencies.mdc
-.cursor/rules/40-best-practices.mdc
-.cursor/rules/50-database.mdc
-.cursor/rules/60-security.mdc
-.cursor/rules/70-i18n.mdc
-.cursor/rules/85-commits.mdc
-.cursor/rules/90-key-conventions.mdc
-.cursor/rules/99-legacy.mdc
-.vite/deps/_metadata.json
-.vite/deps/package.json
+.cursor/
+.agent/
+.github/
+
