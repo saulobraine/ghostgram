@@ -29,6 +29,9 @@
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e",
     "test:snapshot": "node --experimental-vm-modules node_modules/jest/bin/jest.js --updateSnapshot tests/unit/domain"
   },
+  "dependencies": {
+    "@ghostgram/shared": "workspace:*"
+  },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.3.0",
     "@fontsource/noto-sans": "^5.2.10",

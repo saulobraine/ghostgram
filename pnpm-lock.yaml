@@ -16,6 +16,10 @@ importers:
         version: 5.9.3
 
   packages/extension:
+    dependencies:
+      '@ghostgram/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@crxjs/vite-plugin':
         specifier: ^2.3.0

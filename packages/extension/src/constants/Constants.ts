@@ -1,29 +1,14 @@
 // Constants - Remove magic strings and numbers
+// Import shared constants
+import { 
+  INSTAGRAM_HOSTNAME, 
+  STORAGE_KEYS, 
+  ACTION_TYPES as SHARED_ACTION_TYPES, 
+  type StorageKey 
+} from '@ghostgram/shared';
 
-export const INSTAGRAM_HOSTNAME = 'www.instagram.com' as const;
-
-export const STORAGE_KEYS = {
-  ENABLED: 'enabled',
-  WHITELISTED_RESULTS: 'iu_whitelisted-results',
-  FLOATING_PANEL_EXPANDED: 'floatingPanelExpanded',
-  SCAN_STATE: 'scanState',
-  // Configurações rápidas do popup
-  PANEL_POSITION: 'panelPosition',
-  START_EXPANDED: 'startExpanded',
-  STEALTH_MODE: 'stealthMode',
-  // Posição do painel flutuante (localStorage)
-  PANEL_POSITION_STORAGE: 'ghostgram_panel_position',
-  // Persistência do estado do scan
-  SCAN_PERSISTENCE: 'ghostgram_scan_persistence',
-  // Histórico de ações (follow/unfollow)
-  ACTIONS_HISTORY: 'ghostgram_actions_history',
-  // Histórico de scans concluídos
-  SCAN_HISTORY: 'ghostgram_scan_history',
-  // Tempo de cooldown para seguir novamente (24h, 1w, 1m, ou 0 para desativado)
-  FOLLOW_COOLDOWN_HOURS: 'ghostgram_follow_cooldown_hours'
-} as const;
-
-export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+// Re-export shared constants
+export { INSTAGRAM_HOSTNAME, STORAGE_KEYS, type StorageKey };
 
 export const PANEL_POSITIONS = {
   TOP_RIGHT: 'top-right'
@@ -54,8 +39,7 @@ export const MESSAGE_TYPES = {
 export type MessageType = typeof MESSAGE_TYPES[keyof typeof MESSAGE_TYPES];
 
 export const ACTION_TYPES = {
-  FOLLOW: 'follow',
-  UNFOLLOW: 'unfollow',
+  ...SHARED_ACTION_TYPES,
   RE_FOLLOW_ACCEPTED: 'reFollowAccepted',
   RE_FOLLOW_REJECTED: 'reFollowRejected'
 } as const;
