@@ -1,10 +1,23 @@
 import { dbService } from '../services/DatabaseService.js';
 import { createElement } from '../utils/DOMRenderer.js';
+import { ACTION_TYPES, ACTION_SOURCES } from '../../constants/Constants.js';
+
+interface ActionRecord {
+  id: string;
+  userId: string;
+  username: string;
+  actionType: string;
+  source: string;
+  timestamp: number;
+}
 
 /**
  * ProfileOverlay - Injeta informações de histórico nas páginas de perfil do Instagram
  */
 export class ProfileOverlay {
+  private _currentUsername: string | null;
+  private _observer: MutationObserver | null;
+
   constructor() {
     this._currentUsername = null;
     this._observer = null;
@@ -13,7 +26,7 @@ export class ProfileOverlay {
   /**
    * Inicia a observação da página
    */
-  init() {
+  init(): void {
     this._checkProfile();
 
     // Monitora mudanças na URL e no DOM (Instagram é SPA)
@@ -30,8 +43,9 @@ export class ProfileOverlay {
 
   /**
    * Extrai o username da URL atual
+   * @private
    */
-  _extractUsernameFromUrl() {
+  private _extractUsernameFromUrl(): string | null {
     const parts = location.pathname.split('/').filter(Boolean);
     if (parts.length === 1 && !['explore', 'reels', 'direct', 'stories'].includes(parts[0])) {
       return parts[0];
@@ -41,8 +55,9 @@ export class ProfileOverlay {
 
   /**
    * Verifica se está em um perfil e tenta injetar o overlay
+   * @private
    */
-  async _checkProfile() {
+  private async _checkProfile(): Promise<void> {
     const username = this._extractUsernameFromUrl();
     if (!username) return;
 
@@ -58,13 +73,14 @@ export class ProfileOverlay {
 
   /**
    * Aguarda o elemento do header do perfil aparecer
+   * @private
    */
-  async _waitForHeader() {
+  private _waitForHeader(): Promise<HTMLElement | null> {
     return new Promise((resolve) => {
       let attempts = 0;
       const interval = setInterval(() => {
         // Seletor comum para o header do perfil
-        const header = document.querySelector('header section');
+        const header = document.querySelector('header section') as HTMLElement | null;
         if (header) {
           clearInterval(interval);
           resolve(header);
@@ -79,15 +95,16 @@ export class ProfileOverlay {
 
   /**
    * Injeta as informações de histórico
+   * @private
    */
-  async _injectInfo(container, username) {
+  private async _injectInfo(container: HTMLElement, username: string): Promise<void> {
     try {
       // Busca histórico no banco de dados (especificamente unfollows via GhostGram)
       const allActions = await dbService.getAllActions();
-      const ghostUnfollowActions = allActions.filter(a =>
+      const ghostUnfollowActions = allActions.filter((a: ActionRecord) =>
         a.username === username &&
-        a.actionType === 'unfollow' &&
-        a.source === 'auto'
+        a.actionType === ACTION_TYPES.UNFOLLOW &&
+        a.source === ACTION_SOURCES.AUTO
       );
 
       if (ghostUnfollowActions.length === 0) return;
