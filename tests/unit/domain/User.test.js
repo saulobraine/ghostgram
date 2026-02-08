@@ -151,13 +151,13 @@ describe('User', () => {
     it('should throw error when object is null', () => {
       expect(() => {
         User.fromObject(null);
-      }).toThrow('Invalid user object: id and username are required');
+      }).toThrow('Invalid user object: object is null or undefined');
     });
 
     it('should throw error when object is undefined', () => {
       expect(() => {
         User.fromObject(undefined);
-      }).toThrow('Invalid user object: id and username are required');
+      }).toThrow('Invalid user object: object is null or undefined');
     });
 
     it('should throw error when id is missing', () => {

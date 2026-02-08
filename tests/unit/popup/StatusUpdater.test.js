@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { StatusUpdater } from '../../../src/popup/StatusUpdater.js';
 import { createDOMMock, clearDOMMock } from '../../mocks/dom.mock.js';
 

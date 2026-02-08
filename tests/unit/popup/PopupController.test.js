@@ -7,18 +7,17 @@ describe('PopupController', () => {
   let controller;
   let chromeMock;
   let domMock;
-  let statusElement;
-  let toggleButton;
-  let optionsButton;
-  let optionsLink;
+  let elements;
 
   beforeEach(() => {
     chromeMock = createChromeMock();
     domMock = createDOMMock();
-    statusElement = domMock.mockDocument.createElement();
-    toggleButton = domMock.mockDocument.createElement();
-    optionsButton = domMock.mockDocument.createElement();
-    optionsLink = domMock.mockDocument.createElement();
+    elements = {
+      mainToggle: domMock.mockDocument.createElement(),
+      statusBadge: domMock.mockDocument.createElement(),
+      openInstagramBtn: domMock.mockDocument.createElement(),
+      openSettingsBtn: domMock.mockDocument.createElement()
+    };
     controller = new PopupController();
   });
 
@@ -29,36 +28,34 @@ describe('PopupController', () => {
 
   describe('initialize', () => {
     it('should setup event listeners', () => {
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
-      expect(toggleButton.addEventListener).toHaveBeenCalled();
-      expect(optionsButton.addEventListener).toHaveBeenCalled();
-      expect(optionsLink.addEventListener).toHaveBeenCalled();
+      controller.initialize(elements);
+      expect(elements.mainToggle.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+      expect(elements.openSettingsBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
     });
   });
 
   describe('_handleToggle', () => {
     it('should toggle extension state', async () => {
       chromeMock.storageLocal.data.enabled = true;
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
+      controller.initialize(elements);
       await controller._handleToggle();
       expect(chromeMock.storageLocal.data.enabled).toBe(false);
     });
   });
 
-  describe('_openOptions', () => {
-    it('should open options page', () => {
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
-      controller._openOptions();
-      expect(chromeMock.runtime.openOptionsPage).toHaveBeenCalled();
-    });
-  });
-
-  describe('_updateStatus', () => {
-    it('should update status element', async () => {
+  describe('_updateStatusUI', () => {
+    it('should update status badge when enabled', async () => {
       chromeMock.storageLocal.data.enabled = true;
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
-      await controller._updateStatus();
-      expect(statusElement.textContent).toBe('Extension is Active');
+      controller.initialize(elements);
+      await controller._updateStatusUI();
+      expect(elements.statusBadge.textContent).toBe('Ativo');
+    });
+
+    it('should update status badge when disabled', async () => {
+      chromeMock.storageLocal.data.enabled = false;
+      controller.initialize(elements);
+      await controller._updateStatusUI();
+      expect(elements.statusBadge.textContent).toBe('Inativo');
     });
   });
 });

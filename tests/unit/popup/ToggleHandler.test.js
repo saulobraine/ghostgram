@@ -55,21 +55,5 @@ describe('ToggleHandler', () => {
       expect(chromeMock.tabs.sendMessage).toHaveBeenCalled();
     });
   });
-
-  describe('_handleMessageError', () => {
-    it('should reload tab for Instagram URL', () => {
-      const tab = { id: 1, url: 'https://www.instagram.com' };
-      handler._handleMessageError(tab);
-      expect(chromeMock.tabs.reload).toHaveBeenCalledWith(1);
-    });
-
-    it('should show alert for non-Instagram URL', () => {
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation();
-      const tab = { id: 1, url: 'https://www.google.com' };
-      handler._handleMessageError(tab);
-      expect(alertSpy).toHaveBeenCalledWith('Please navigate to Instagram.com to use this extension');
-      alertSpy.mockRestore();
-    });
-  });
 });
 

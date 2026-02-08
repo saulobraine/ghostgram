@@ -13,7 +13,7 @@ export const createChromeMock = () => {
         Object.assign(result, storageSync.data);
       } else {
         keys.forEach(key => {
-          result[key] = storageSync.data[key] || undefined;
+          result[key] = key in storageSync.data ? storageSync.data[key] : undefined;
         });
       }
       if (callback) {
@@ -60,7 +60,7 @@ export const createChromeMock = () => {
         Object.assign(result, storageLocal.data);
       } else {
         keys.forEach(key => {
-          result[key] = storageLocal.data[key] || undefined;
+          result[key] = key in storageLocal.data ? storageLocal.data[key] : undefined;
         });
       }
       if (callback) {
@@ -119,7 +119,14 @@ export const createChromeMock = () => {
         callback();
       }
       return Promise.resolve();
-    })
+    }),
+    create: jest.fn((props, callback) => {
+      if (callback) callback({ id: 2, ...props });
+      return Promise.resolve({ id: 2, ...props });
+    }),
+    onUpdated: {
+      addListener: jest.fn()
+    }
   };
 
   const runtime = {

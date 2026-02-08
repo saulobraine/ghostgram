@@ -54,7 +54,7 @@ describe('Messaging Integration', () => {
 
       expect(chromeMock.storageLocal.data.enabled).toBe(false);
       expect(sendResponse).toHaveBeenCalledWith({ success: true });
-      expect(domMock.location.reload).toHaveBeenCalled();
+      expect(global.location.reload).toHaveBeenCalled();
     });
   });
 });

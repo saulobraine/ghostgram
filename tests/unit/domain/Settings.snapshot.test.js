@@ -1,6 +1,9 @@
 // Snapshot tests for Settings
 import { describe, it, expect } from '@jest/globals';
 import { Settings } from '../../../src/domain/Settings.js';
+import { DEFAULT_SETTINGS } from '../../../src/constants/Constants.js';
+
+const d = DEFAULT_SETTINGS;
 
 describe('Settings Snapshots', () => {
   it('should match snapshot for default settings', () => {
@@ -10,14 +13,13 @@ describe('Settings Snapshots', () => {
   });
 
   it('should match snapshot for custom settings', () => {
-    const settings = new Settings(2000, 15000, 5000, 400000);
-    const snapshot = {
-      timeBetweenSearchCycles: settings.getTimeBetweenSearchCycles(),
-      timeToWaitAfterFiveSearchCycles: settings.getTimeToWaitAfterFiveSearchCycles(),
-      timeBetweenUnfollows: settings.getTimeBetweenUnfollows(),
-      timeToWaitAfterFiveUnfollows: settings.getTimeToWaitAfterFiveUnfollows(),
-      object: settings.toObject()
-    };
+    const settings = new Settings(
+      2000, 15000, 5000, 400000,
+      d.successMessageDuration, d.unfollowersPerPage,
+      [...d.withoutProfilePictureUrlIds], d.instagramGraphqlQueryHash,
+      d.instagramGraphqlBaseUrl, d.instagramUnfollowBaseUrl
+    );
+    const snapshot = settings.toObject();
     expect(snapshot).toMatchSnapshot();
   });
 

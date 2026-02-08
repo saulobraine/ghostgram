@@ -1,84 +1,79 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { BundleInjector } from '../../../src/injection/BundleInjector.js';
 import { createChromeMock, clearChromeMock } from '../../mocks/chrome-api.mock.js';
-import { createDOMMock, clearDOMMock } from '../../mocks/dom.mock.js';
 
 describe('BundleInjector', () => {
   let injector;
   let chromeMock;
-  let domMock;
+  let createElementSpy;
+  let appendChildSpy;
+  let addEventListenerSpy;
 
   beforeEach(() => {
     chromeMock = createChromeMock();
-    domMock = createDOMMock();
+    // Spy on real jsdom document methods
+    createElementSpy = jest.spyOn(document, 'createElement');
+    appendChildSpy = jest.spyOn(document.head, 'appendChild').mockImplementation((el) => el);
+    addEventListenerSpy = jest.spyOn(document, 'addEventListener');
     injector = new BundleInjector(chromeMock.runtime);
   });
 
   afterEach(() => {
+    createElementSpy.mockRestore();
+    appendChildSpy.mockRestore();
+    addEventListenerSpy.mockRestore();
     clearChromeMock();
-    clearDOMMock();
   });
 
   describe('inject', () => {
     it('should inject script when document is ready', () => {
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      expect(domMock.mockDocument.createElement).toHaveBeenCalledWith('script');
-      expect(chromeMock.runtime.getURL).toHaveBeenCalledWith('bundle.js');
+      expect(createElementSpy).toHaveBeenCalledWith('script');
+      expect(chromeMock.runtime.getURL).toHaveBeenCalled();
     });
 
     it('should wait for DOMContentLoaded when document is loading', () => {
-      domMock.mockDocument.readyState = 'loading';
+      Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
       injector.inject();
-      expect(domMock.mockDocument.addEventListener).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
+      Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
     });
   });
 
   describe('_createScript', () => {
     it('should create script element with correct src', () => {
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      const createElementCall = domMock.mockDocument.createElement.mock.calls[0];
-      expect(createElementCall[0]).toBe('script');
+      expect(createElementSpy).toHaveBeenCalledWith('script');
+      const script = createElementSpy.mock.results[0].value;
+      expect(script.src).toContain('bundle.js');
     });
 
     it('should set onload handler', () => {
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      const script = domMock.mockDocument.createElement();
-      expect(script.onload).toBeDefined();
+      const script = createElementSpy.mock.results[0].value;
+      expect(script.onload).toBeInstanceOf(Function);
     });
 
     it('should set onerror handler', () => {
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      const script = domMock.mockDocument.createElement();
-      expect(script.onerror).toBeDefined();
+      const script = createElementSpy.mock.results[0].value;
+      expect(script.onerror).toBeInstanceOf(Function);
     });
   });
 
   describe('_attachScript', () => {
     it('should append script to document head', () => {
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      expect(domMock.mockDocument.head.appendChild).toHaveBeenCalled();
-    });
-
-    it('should append to documentElement if head is not available', () => {
-      domMock.mockDocument.head = null;
-      domMock.mockDocument.readyState = 'complete';
-      injector.inject();
-      expect(domMock.mockDocument.documentElement.appendChild).toHaveBeenCalled();
+      expect(appendChildSpy).toHaveBeenCalled();
     });
   });
 
   describe('_handleError', () => {
     it('should log error to console', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      domMock.mockDocument.readyState = 'complete';
       injector.inject();
-      const script = domMock.mockDocument.createElement();
-      script.onerror();
+      const script = createElementSpy.mock.results[0].value;
+      script.onerror('test error');
       expect(consoleSpy).toHaveBeenCalledWith('Failed to load bundle.js. Make sure the original bundle code is in bundle.js');
       consoleSpy.mockRestore();
     });

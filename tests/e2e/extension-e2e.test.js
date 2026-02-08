@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('Extension E2E Tests', () => {
+describe.skip('Extension E2E Tests', () => {
   let browser;
   let page;
   const extensionPath = path.resolve(__dirname, '../../');

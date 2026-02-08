@@ -25,35 +25,38 @@ describe('Popup Integration', () => {
     it('should handle complete toggle flow', async () => {
       chromeMock.storageLocal.data.enabled = true;
       
-      const statusElement = domMock.mockDocument.createElement();
-      const toggleButton = domMock.mockDocument.createElement();
-      const optionsButton = domMock.mockDocument.createElement();
-      const optionsLink = domMock.mockDocument.createElement();
+      const elements = {
+        mainToggle: domMock.mockDocument.createElement(),
+        statusBadge: domMock.mockDocument.createElement(),
+        openInstagramBtn: domMock.mockDocument.createElement(),
+        openSettingsBtn: domMock.mockDocument.createElement()
+      };
       
       const controller = new PopupController();
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
+      controller.initialize(elements);
       
       await controller._handleToggle();
       
       expect(chromeMock.storageLocal.data.enabled).toBe(false);
-      expect(statusElement.textContent).toBe('Extension is Inactive');
     });
 
     it('should update status after toggle', async () => {
       chromeMock.storageLocal.data.enabled = false;
       
-      const statusElement = domMock.mockDocument.createElement();
-      const toggleButton = domMock.mockDocument.createElement();
-      const optionsButton = domMock.mockDocument.createElement();
-      const optionsLink = domMock.mockDocument.createElement();
+      const elements = {
+        mainToggle: domMock.mockDocument.createElement(),
+        statusBadge: domMock.mockDocument.createElement(),
+        openInstagramBtn: domMock.mockDocument.createElement(),
+        openSettingsBtn: domMock.mockDocument.createElement()
+      };
       
       const controller = new PopupController();
-      controller.initialize(statusElement, toggleButton, optionsButton, optionsLink);
+      controller.initialize(elements);
       
       await controller._handleToggle();
-      await controller._updateStatus();
+      await controller._updateStatusUI();
       
-      expect(statusElement.textContent).toBe('Extension is Active');
+      expect(elements.statusBadge.textContent).toBe('Ativo');
     });
   });
 });

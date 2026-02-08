@@ -6,6 +6,8 @@ export const createDOMMock = () => {
     textContent: '',
     className: '',
     value: '',
+    checked: false,
+    style: {},
     classList: {
       add: jest.fn(),
       remove: jest.fn(),
@@ -34,7 +36,7 @@ export const createDOMMock = () => {
     },
     createElement: jest.fn((tag) => {
       const element = { ...mockElement };
-      element.tagName = tag.toUpperCase();
+      element.tagName = tag ? tag.toUpperCase() : 'DIV';
       return element;
     }),
     getElementById: jest.fn((id) => {

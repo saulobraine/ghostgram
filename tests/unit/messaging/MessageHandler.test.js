@@ -49,7 +49,7 @@ describe('MessageHandler', () => {
         });
       });
       expect(sendResponse).toHaveBeenCalledWith({ success: true });
-      expect(domMock.location.reload).toHaveBeenCalled();
+      expect(global.location.reload).toHaveBeenCalled();
     });
   });
 
