@@ -1,6 +1,23 @@
 // Filter - Value Object (Wrap primitives)
+import type { IFilterObject } from '../../types/domain.js';
+
+/**
+ * Value Object que representa filtros de usuários
+ */
 export class Filter {
-  constructor(showNonFollowers, showFollowers, showVerified, showPrivate, showWithOutProfilePicture) {
+  private readonly _showNonFollowers: boolean;
+  private readonly _showFollowers: boolean;
+  private readonly _showVerified: boolean;
+  private readonly _showPrivate: boolean;
+  private readonly _showWithOutProfilePicture: boolean;
+
+  constructor(
+    showNonFollowers: boolean,
+    showFollowers: boolean,
+    showVerified: boolean,
+    showPrivate: boolean,
+    showWithOutProfilePicture: boolean
+  ) {
     this._showNonFollowers = Boolean(showNonFollowers);
     this._showFollowers = Boolean(showFollowers);
     this._showVerified = Boolean(showVerified);
@@ -8,15 +25,15 @@ export class Filter {
     this._showWithOutProfilePicture = Boolean(showWithOutProfilePicture);
   }
 
-  static createDefault() {
+  static createDefault(): Filter {
     return new Filter(true, false, true, true, true);
   }
 
-  static createUnfollowFilter() {
+  static createUnfollowFilter(): Filter {
     return new Filter(false, false, false, false, false);
   }
 
-  static fromObject(obj) {
+  static fromObject(obj: IFilterObject | null | undefined): Filter {
     if (!obj) {
       return Filter.createDefault();
     }
@@ -30,27 +47,27 @@ export class Filter {
     );
   }
 
-  showNonFollowers() {
+  showNonFollowers(): boolean {
     return this._showNonFollowers;
   }
 
-  showFollowers() {
+  showFollowers(): boolean {
     return this._showFollowers;
   }
 
-  showVerified() {
+  showVerified(): boolean {
     return this._showVerified;
   }
 
-  showPrivate() {
+  showPrivate(): boolean {
     return this._showPrivate;
   }
 
-  showWithOutProfilePicture() {
+  showWithOutProfilePicture(): boolean {
     return this._showWithOutProfilePicture;
   }
 
-  update(updates) {
+  update(updates: Partial<IFilterObject>): Filter {
     return new Filter(
       updates.showNonFollowers !== undefined ? updates.showNonFollowers : this._showNonFollowers,
       updates.showFollowers !== undefined ? updates.showFollowers : this._showFollowers,
@@ -60,7 +77,7 @@ export class Filter {
     );
   }
 
-  toObject() {
+  toObject(): IFilterObject {
     return {
       showNonFollowers: this._showNonFollowers,
       showFollowers: this._showFollowers,
@@ -70,7 +87,7 @@ export class Filter {
     };
   }
 
-  equals(other) {
+  equals(other: unknown): boolean {
     if (!(other instanceof Filter)) {
       return false;
     }
@@ -81,4 +98,3 @@ export class Filter {
            this._showWithOutProfilePicture === other._showWithOutProfilePicture;
   }
 }
-

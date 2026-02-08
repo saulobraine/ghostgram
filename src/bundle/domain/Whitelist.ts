@@ -1,20 +1,26 @@
 // Whitelist - Value Object (First class collection, Wrap primitives)
 import { User } from './User.js';
+import type { IUserObject } from '../../types/domain.js';
 
+/**
+ * Value Object que representa uma whitelist de usuários (coleção de primeira classe)
+ */
 export class Whitelist {
-  constructor(users) {
-    this._users = this._normalizeUsers(users || []);
+  private readonly _users: User[];
+
+  constructor(users: (User | IUserObject)[] = []) {
+    this._users = this._normalizeUsers(users);
   }
 
-  static createEmpty() {
+  static createEmpty(): Whitelist {
     return new Whitelist([]);
   }
 
-  static fromArray(users) {
+  static fromArray(users: (User | IUserObject)[]): Whitelist {
     return new Whitelist(users);
   }
 
-  _normalizeUsers(users) {
+  private _normalizeUsers(users: (User | IUserObject)[]): User[] {
     return users.map(user => {
       if (user instanceof User) {
         return user;
@@ -23,7 +29,7 @@ export class Whitelist {
     });
   }
 
-  add(user) {
+  add(user: User | IUserObject): Whitelist {
     if (this.contains(user)) {
       return this;
     }
@@ -32,7 +38,7 @@ export class Whitelist {
     return new Whitelist([...this._users, normalizedUser]);
   }
 
-  remove(user) {
+  remove(user: User | IUserObject): Whitelist {
     const userToRemove = user instanceof User ? user : User.fromObject(user);
     const filtered = this._users.filter(u => !u.equals(userToRemove));
     
@@ -43,28 +49,28 @@ export class Whitelist {
     return new Whitelist(filtered);
   }
 
-  contains(user) {
+  contains(user: User | IUserObject): boolean {
     const userToCheck = user instanceof User ? user : User.fromObject(user);
     return this._users.some(u => u.equals(userToCheck));
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this._users.length === 0;
   }
 
-  size() {
+  size(): number {
     return this._users.length;
   }
 
-  toArray() {
+  toArray(): User[] {
     return [...this._users];
   }
 
-  toObjectArray() {
+  toObjectArray(): ReturnType<User['toObject']>[] {
     return this._users.map(user => user.toObject());
   }
 
-  equals(other) {
+  equals(other: unknown): boolean {
     if (!(other instanceof Whitelist)) {
       return false;
     }
@@ -75,4 +81,3 @@ export class Whitelist {
     return this._users.every(user => other.contains(user));
   }
 }
-

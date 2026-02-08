@@ -1,8 +1,16 @@
 // UnfollowLogEntry - Value Object (Wrap primitives)
 import { User } from './User.js';
+import type { IUserObject } from '../../types/domain.js';
 
+/**
+ * Value Object que representa uma entrada de log de unfollow
+ */
 export class UnfollowLogEntry {
-  constructor(user, unfollowedSuccessfully, timestamp) {
+  private readonly _user: User;
+  private readonly _unfollowedSuccessfully: boolean;
+  private readonly _timestamp: number;
+
+  constructor(user: User | IUserObject, unfollowedSuccessfully: boolean, timestamp?: number) {
     this._validate(user, unfollowedSuccessfully);
     
     this._user = user instanceof User ? user : User.fromObject(user);
@@ -10,15 +18,15 @@ export class UnfollowLogEntry {
     this._timestamp = timestamp || Date.now();
   }
 
-  static createSuccess(user) {
+  static createSuccess(user: User | IUserObject): UnfollowLogEntry {
     return new UnfollowLogEntry(user, true);
   }
 
-  static createFailure(user) {
+  static createFailure(user: User | IUserObject): UnfollowLogEntry {
     return new UnfollowLogEntry(user, false);
   }
 
-  _validate(user, unfollowedSuccessfully) {
+  private _validate(user: unknown, unfollowedSuccessfully: unknown): void {
     if (!user) {
       throw new Error('User is required for UnfollowLogEntry');
     }
@@ -27,23 +35,27 @@ export class UnfollowLogEntry {
     }
   }
 
-  getUser() {
+  getUser(): User {
     return this._user;
   }
 
-  wasSuccessful() {
+  wasSuccessful(): boolean {
     return this._unfollowedSuccessfully;
   }
 
-  wasFailure() {
+  wasFailure(): boolean {
     return !this._unfollowedSuccessfully;
   }
 
-  getTimestamp() {
+  getTimestamp(): number {
     return this._timestamp;
   }
 
-  toObject() {
+  toObject(): {
+    user: ReturnType<User['toObject']>;
+    unfollowedSuccessfully: boolean;
+    timestamp: number;
+  } {
     return {
       user: this._user.toObject(),
       unfollowedSuccessfully: this._unfollowedSuccessfully,
@@ -51,7 +63,7 @@ export class UnfollowLogEntry {
     };
   }
 
-  equals(other) {
+  equals(other: unknown): boolean {
     if (!(other instanceof UnfollowLogEntry)) {
       return false;
     }
@@ -59,4 +71,3 @@ export class UnfollowLogEntry {
            this._unfollowedSuccessfully === other._unfollowedSuccessfully;
   }
 }
-

@@ -1,7 +1,28 @@
 // User - Objeto de Valor (Encapsula primitivos)
+import type { IUserObject } from '../../types/domain.js';
+
+/**
+ * Value Object que representa um usuário do Instagram
+ */
 export class User {
-  constructor(id, username, fullName, profilePicUrl, isVerified, isPrivate, followsViewer) {
-    this._validate(id, username, profilePicUrl);
+  private readonly _id: string;
+  private readonly _username: string;
+  private readonly _fullName: string;
+  private readonly _profilePicUrl: string;
+  private readonly _isVerified: boolean;
+  private readonly _isPrivate: boolean;
+  private readonly _followsViewer: boolean;
+
+  constructor(
+    id: string,
+    username: string,
+    fullName: string,
+    profilePicUrl: string,
+    isVerified: boolean,
+    isPrivate: boolean,
+    followsViewer: boolean
+  ) {
+    this._validate(id, username);
 
     this._id = String(id);
     this._username = String(username);
@@ -14,10 +35,10 @@ export class User {
 
   /**
    * Cria uma instância de User a partir de um objeto
-   * @param {Object} obj - Objeto com dados do usuário
-   * @returns {User} Nova instância de User
+   * @param obj - Objeto com dados do usuário
+   * @returns Nova instância de User
    */
-  static fromObject(obj) {
+  static fromObject(obj: IUserObject): User {
     if (!obj) {
       throw new Error('Invalid user object: object is null or undefined');
     }
@@ -44,7 +65,7 @@ export class User {
    * Valida os dados obrigatórios do usuário
    * @private
    */
-  _validate(id, username) {
+  private _validate(id: unknown, username: unknown): void {
     if (!id) {
       throw new Error('User id is required');
     }
@@ -53,40 +74,40 @@ export class User {
     }
   }
 
-  getId() {
+  getId(): string {
     return this._id;
   }
 
-  getUsername() {
+  getUsername(): string {
     return this._username;
   }
 
-  getFullName() {
+  getFullName(): string {
     return this._fullName;
   }
 
-  getProfilePicUrl() {
+  getProfilePicUrl(): string {
     return this._profilePicUrl;
   }
 
-  isVerified() {
+  isVerified(): boolean {
     return this._isVerified;
   }
 
-  isPrivate() {
+  isPrivate(): boolean {
     return this._isPrivate;
   }
 
-  followsViewer() {
+  followsViewer(): boolean {
     return this._followsViewer;
   }
 
   /**
    * Compara se dois usuários são o mesmo
-   * @param {User} other - Outro usuário a comparar
-   * @returns {boolean} Verdadeiro se forem o mesmo
+   * @param other - Outro usuário a comparar
+   * @returns Verdadeiro se forem o mesmo
    */
-  equals(other) {
+  equals(other: unknown): boolean {
     if (!(other instanceof User)) {
       return false;
     }
@@ -95,9 +116,17 @@ export class User {
 
   /**
    * Converte a instância para um objeto plano
-   * @returns {Object} Representação em objeto
+   * @returns Representação em objeto
    */
-  toObject() {
+  toObject(): {
+    id: string;
+    username: string;
+    full_name: string;
+    profile_pic_url: string;
+    is_verified: boolean;
+    is_private: boolean;
+    follows_viewer: boolean;
+  } {
     return {
       id: this._id,
       username: this._username,
@@ -109,5 +138,3 @@ export class User {
     };
   }
 }
-
-
