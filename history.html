@@ -4,146 +4,589 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Histórico GhostGram - Relatório Global</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👻</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
     <style>
+      :root {
+        --bg-primary: #0a0a0a;
+        --bg-card: #111113;
+        --bg-elevated: #18181b;
+        --border-subtle: #27272a;
+        --border-muted: #1e1e21;
+        --text-primary: #fafafa;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+        --accent-cyan: #00ffff;
+        --accent-pink: #e1306c;
+        --accent-green: #22c55e;
+        --accent-red: #ef4444;
+        --accent-amber: #f59e0b;
+        --radius: 8px;
+        --radius-lg: 12px;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
       body {
-        background-color: #121212;
-        color: #ffffff;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
+        padding: 24px;
+        min-height: 100vh;
       }
+
       .container {
-        width: 100%;
-        max-width: 900px;
-        background: #1a1a1a;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        border: 1px solid #333;
+        max-width: 960px;
+        margin: 0 auto;
       }
-      header {
+
+      /* Animações de entrada */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out both;
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out both;
+      }
+      .animate-scale-in {
+        animation: scaleIn 0.35s ease-out both;
+      }
+
+      /* Header */
+      .page-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
-        border-bottom: 2px solid #c44569;
-        padding-bottom: 15px;
+        margin-bottom: 24px;
+        animation: fadeInUp 0.4s ease-out both;
       }
-      h1 {
-        margin: 0;
-        color: #ff6b9d;
-        font-size: 24px;
-      }
-      .controls {
-        display: flex;
-        gap: 10px;
-      }
-      button {
-        padding: 8px 16px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
+      .page-header h1 {
+        font-size: 22px;
         font-weight: 600;
-        transition: all 0.2s;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
-      .btn-clear {
-        background: #c44569;
-        color: white;
+      .page-header h1 span.emoji { font-size: 26px; }
+      .header-controls {
+        display: flex;
+        gap: 8px;
       }
-      .btn-clear:hover {
-        background: #e04b7a;
-      }
-      .btn-refresh {
-        background: #333;
-        color: white;
-        border: 1px solid #444;
-      }
-      .btn-refresh:hover {
-        background: #444;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 14px;
-        border-bottom: 1px solid #333;
-      }
-      th {
-        color: #888;
+      .btn {
+        padding: 7px 14px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        font-family: inherit;
         font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn:hover {
+        background: #27272a;
+        color: var(--text-primary);
+      }
+      .btn-danger {
+        border-color: rgba(239, 68, 68, 0.3);
+        color: var(--accent-red);
+      }
+      .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+
+      /* Summary Cards */
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-muted);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        animation: scaleIn 0.35s ease-out both;
+      }
+      .stat-card:nth-child(1) { animation-delay: 0.05s; }
+      .stat-card:nth-child(2) { animation-delay: 0.1s; }
+      .stat-card:nth-child(3) { animation-delay: 0.15s; }
+      .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+      .stat-card .label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
       }
-      .action-follow {
-        color: #2ecc71;
-        font-weight: bold;
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
       }
-      .action-unfollow {
-        color: #e74c3c;
-        font-weight: bold;
+      .stat-card .icon {
+        font-size: 16px;
+        margin-bottom: 4px;
       }
-      .source-auto {
-        background: rgba(0, 255, 255, 0.1);
-        color: #00ffff;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
+      .stat-card.card-total .value { color: var(--accent-cyan); }
+      .stat-card.card-unfollow .value { color: var(--accent-red); }
+      .stat-card.card-follow .value { color: var(--accent-green); }
+      .stat-card.card-today .value { color: var(--accent-amber); }
+
+      /* Top Unfollowed Box */
+      .top-unfollowed {
+        background: var(--bg-card);
+        border: 1px solid var(--border-muted);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        margin-bottom: 24px;
+        animation: fadeInUp 0.4s ease-out 0.25s both;
       }
-      .source-manual {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ccc;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
+      .top-unfollowed .section-title {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
       }
-      .empty-state {
+      .top-profiles {
+        display: flex;
+        gap: 12px;
+      }
+      .top-profile {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        transition: border-color 0.15s ease;
+      }
+      .top-profile:hover { border-color: var(--accent-cyan); }
+      .top-profile .rank {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-muted);
+        min-width: 24px;
         text-align: center;
-        padding: 50px;
-        color: #666;
       }
-      .username-link {
-        color: #ff6b9d;
+      .top-profile .rank:nth-child(1) { color: var(--accent-amber); }
+      .top-profile .profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .top-profile .profile-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
         text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .top-profile .profile-name:hover { color: var(--accent-cyan); }
+      .top-profile .profile-count {
+        font-size: 11px;
+        color: var(--accent-red);
+        font-weight: 500;
+      }
+      .top-unfollowed .empty-hint {
+        color: var(--text-muted);
+        font-size: 13px;
+        text-align: center;
+        padding: 8px;
+      }
+
+      /* Toolbar (search + filters) */
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 16px;
+        animation: fadeIn 0.3s ease-out 0.3s both;
+      }
+      .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .search-input::placeholder { color: var(--text-muted); }
+      .search-input:focus { border-color: var(--accent-cyan); }
+
+      .filter-group {
+        display: flex;
+        gap: 2px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 2px;
+      }
+      .filter-btn {
+        padding: 5px 12px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .filter-btn:hover { color: var(--text-secondary); }
+      .filter-btn.active {
+        background: var(--border-subtle);
+        color: var(--text-primary);
+      }
+
+      /* List container */
+      .list-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-muted);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease-out 0.35s both;
+      }
+      .list-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border-muted);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .list-header span:nth-child(1) { width: 25%; }
+      .list-header span:nth-child(2) { width: 30%; }
+      .list-header span:nth-child(3) { width: 30%; }
+      .list-header span:nth-child(4) { width: 15%; text-align: right; }
+      .history-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-muted);
+        transition: background 0.15s ease;
+      }
+      .history-item:last-child { border-bottom: none; }
+      .history-item:hover { background: rgba(255, 255, 255, 0.02); }
+      .history-item__date { width: 25%; font-size: 12px; color: var(--text-muted); }
+      .history-item__user { width: 30%; }
+      .history-item__action { width: 30%; }
+      .history-item__source { width: 15%; text-align: right; }
+
+      .username-link {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
       }
       .username-link:hover {
+        color: var(--accent-cyan);
         text-decoration: underline;
+      }
+
+      /* Action badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .badge-unfollow {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--accent-red);
+      }
+      .badge-follow {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--accent-green);
+      }
+      .badge-source {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .badge-source.auto {
+        background: rgba(0, 255, 255, 0.08);
+        color: var(--accent-cyan);
+      }
+      .badge-refollow-accepted {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+      }
+      .badge-refollow-rejected {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--accent-red);
+      }
+
+      /* Pagination */
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-top: 1px solid var(--border-muted);
+        background: var(--bg-elevated);
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pagination-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .pagination-btn:hover:not(:disabled) {
+        background: var(--border-subtle);
+        color: var(--text-primary);
+      }
+      .pagination-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .pagination-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .per-page-select {
+        padding: 3px 6px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 4px;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
+      }
+      .per-page-select:focus { border-color: var(--accent-cyan); }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-muted);
+      }
+      .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+      .empty-state p {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 640px) {
+        .cards-grid { grid-template-columns: repeat(2, 1fr); }
+        .toolbar { flex-direction: column; }
+        .top-profiles { flex-direction: column; align-items: center; }
+        .top-unfollowed { text-align: center; }
+        body { padding: 16px; }
+
+        .page-header {
+          flex-direction: column;
+          gap: 1em;
+          text-align: center;
+        }
+
+        /* List header stays visible */
+        .list-header {
+          font-size: 10px;
+          padding: 8px 12px;
+        }
+        .list-header span:nth-child(1) { width: 30%; }
+        .list-header span:nth-child(2) { width: 30%; }
+        .list-header span:nth-child(3) { width: 25%; }
+        .list-header span:nth-child(4) { width: 15%; }
+
+        /* Mobile list items: wrap into 2 lines */
+        .history-item {
+          flex-wrap: wrap;
+          gap: 4px 0;
+          padding: 10px 12px;
+        }
+        .history-item__user { width: 55%; order: 1; font-size: 13px; }
+        .history-item__action { width: 45%; order: 2; text-align: right; }
+        .history-item__date { width: 55%; order: 3; font-size: 11px; }
+        .history-item__source { width: 45%; order: 4; }
+
+        /* Pagination: stack vertically on mobile */
+        .pagination {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+          padding: 12px;
+        }
+        .pagination-info {
+          flex-direction: column;
+          gap: 6px;
+          align-items: center;
+          text-align: center;
+        }
+        .pagination-info > span:nth-child(2) {
+          display: none;
+        }
+        .pagination-controls {
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .filter-group {
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+        }
+        .filter-btn {
+          font-size: 11px;
+          padding: 5px 10px;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <header>
-        <h1>📜 Relatório de Histórico</h1>
-        <div class="controls">
-          <button class="btn-refresh" id="refreshBtn">Atualizar</button>
-          <button class="btn-clear" id="clearBtn">Limpar Tudo</button>
+      <div class="page-header">
+        <h1><span class="emoji">👻</span> GhostGram</h1>
+        <div class="header-controls">
+          <button class="btn" id="refreshBtn">↻ Atualizar</button>
+          <button class="btn btn-danger" id="clearBtn">Limpar Tudo</button>
         </div>
-      </header>
+      </div>
 
-      <div id="historyTableContainer">
-        <table id="historyTable">
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Usuário</th>
-              <th>Ação</th>
-              <th>Método</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody">
-            <!-- Registros serão inseridos aqui -->
-          </tbody>
-        </table>
+      <!-- Summary Cards -->
+      <div class="cards-grid">
+        <div class="stat-card card-total">
+          <span class="icon">📊</span>
+          <span class="label">Total de Ações</span>
+          <span class="value" id="statTotal">0</span>
+        </div>
+        <div class="stat-card card-unfollow">
+          <span class="icon">💔</span>
+          <span class="label">Unfollows</span>
+          <span class="value" id="statUnfollows">0</span>
+        </div>
+        <div class="stat-card card-follow">
+          <span class="icon">💚</span>
+          <span class="label">Follows</span>
+          <span class="value" id="statFollows">0</span>
+        </div>
+        <div class="stat-card card-today">
+          <span class="icon">📅</span>
+          <span class="label">Hoje</span>
+          <span class="value" id="statToday">0</span>
+        </div>
+      </div>
+
+      <!-- Top Unfollowed Profiles -->
+      <div class="top-unfollowed" id="topUnfollowed">
+        <div class="section-title">🏆 Meus perfis mais desseguidos</div>
+        <div class="top-profiles" id="topProfiles">
+          <span class="empty-hint">Carregando...</span>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Buscar por usuário..." />
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">Todos</button>
+          <button class="filter-btn" data-filter="unfollow">Unfollows</button>
+          <button class="filter-btn" data-filter="follow">Follows</button>
+          <button class="filter-btn" data-filter="reFollowAccepted">Aceitos</button>
+          <button class="filter-btn" data-filter="reFollowRejected">Rejeitados</button>
+        </div>
+      </div>
+
+      <!-- History List -->
+      <div class="list-container">
+        <div class="list-header">
+          <span>Data/Hora</span>
+          <span>Usuário</span>
+          <span>Ação</span>
+          <span>Método</span>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
         <div id="emptyState" class="empty-state" style="display: none">
-          <p>Nenhum registro encontrado no histórico.</p>
+          <div class="empty-icon">👻</div>
+          <p>Nenhum registro encontrado.</p>
+        </div>
+        <!-- Pagination -->
+        <div class="pagination" id="paginationBar">
+          <div class="pagination-info">
+            <span id="paginationInfo">0 registros</span>
+            <span>|</span>
+            <label>
+              Por página:
+              <select class="per-page-select" id="perPageSelect">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+          </div>
+          <div class="pagination-controls">
+            <button class="pagination-btn" id="prevPageBtn" disabled>← Anterior</button>
+            <span id="pageIndicator">1 / 1</span>
+            <button class="pagination-btn" id="nextPageBtn" disabled>Próxima →</button>
+          </div>
         </div>
       </div>
     </div>
