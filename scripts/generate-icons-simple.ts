@@ -4,29 +4,29 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const iconsDir = path.join(rootDir, 'icons');
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
+const rootDir: string = path.resolve(__dirname, '..');
+const iconsDir: string = path.join(rootDir, 'icons');
 
 // Icon sizes required by Chrome
-const iconSizes = [16, 48, 128];
+const iconSizes: number[] = [16, 48, 128];
 
 // Instagram-inspired colors
-const colors = {
+const colors: Record<string, string> = {
   primary: '#E4405F',    // Instagram pink
   secondary: '#833AB4',  // Instagram purple
   accent: '#FCAF45',     // Instagram yellow
   background: '#FFFFFF'
 };
 
-function createSVGIcon(size) {
-  const radius = size * 0.1;
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const cameraRadius = size * 0.3;
-  const lensRadius = size * 0.18;
-  const dotRadius = size * 0.09;
+function createSVGIcon(size: number): string {
+  const radius: number = size * 0.1;
+  const centerX: number = size / 2;
+  const centerY: number = size / 2;
+  const cameraRadius: number = size * 0.3;
+  const lensRadius: number = size * 0.18;
+  const dotRadius: number = size * 0.09;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
@@ -61,7 +61,7 @@ function createSVGIcon(size) {
 </svg>`;
 }
 
-function generateIcons() {
+function generateIcons(): void {
   console.log('🎨 Generating extension icons (SVG format)...\n');
 
   // Create icons directory if it doesn't exist
@@ -71,10 +71,10 @@ function generateIcons() {
   }
 
   // Generate each icon size
-  iconSizes.forEach(size => {
-    const svg = createSVGIcon(size);
-    const svgPath = path.join(iconsDir, `icon${size}.svg`);
-    const pngPath = path.join(iconsDir, `icon${size}.png`);
+  iconSizes.forEach((size: number) => {
+    const svg: string = createSVGIcon(size);
+    const svgPath: string = path.join(iconsDir, `icon${size}.svg`);
+    const pngPath: string = path.join(iconsDir, `icon${size}.png`);
     
     // Save SVG
     fs.writeFileSync(svgPath, svg);
@@ -96,4 +96,3 @@ function generateIcons() {
 
 // Run
 generateIcons();
-

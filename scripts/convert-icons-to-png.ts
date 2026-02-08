@@ -4,22 +4,22 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const iconsDir = path.join(rootDir, 'icons');
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
+const rootDir: string = path.resolve(__dirname, '..');
+const iconsDir: string = path.join(rootDir, 'icons');
 
-const iconSizes = [16, 48, 128];
+const iconSizes: number[] = [16, 48, 128];
 
-async function convertWithSharp() {
+async function convertWithSharp(): Promise<boolean> {
   try {
     const sharp = (await import('sharp')).default;
 
     console.log('🔄 Converting SVG icons to PNG using Sharp...\n');
 
     for (const size of iconSizes) {
-      const svgPath = path.join(iconsDir, `icon${size}.svg`);
-      const pngPath = path.join(iconsDir, `icon${size}.png`);
+      const svgPath: string = path.join(iconsDir, `icon${size}.svg`);
+      const pngPath: string = path.join(iconsDir, `icon${size}.png`);
 
       if (!fs.existsSync(svgPath)) {
         console.warn(`⚠️  SVG not found: icon${size}.svg`);
@@ -41,15 +41,15 @@ async function convertWithSharp() {
   }
 }
 
-async function convertWithCanvas() {
+async function convertWithCanvas(): Promise<boolean> {
   try {
     const { createCanvas, loadImage } = await import('canvas');
 
     console.log('🔄 Converting SVG icons to PNG using Canvas...\n');
 
     for (const size of iconSizes) {
-      const svgPath = path.join(iconsDir, `icon${size}.svg`);
-      const pngPath = path.join(iconsDir, `icon${size}.png`);
+      const svgPath: string = path.join(iconsDir, `icon${size}.svg`);
+      const pngPath: string = path.join(iconsDir, `icon${size}.png`);
 
       if (!fs.existsSync(svgPath)) {
         console.warn(`⚠️  SVG not found: icon${size}.svg`);
@@ -58,8 +58,8 @@ async function convertWithCanvas() {
 
       // Canvas doesn't support SVG directly, so we'll use a workaround
       // Read SVG as data URL and create image
-      const svgData = fs.readFileSync(svgPath, 'utf8');
-      const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgData).toString('base64')}`;
+      const svgData: string = fs.readFileSync(svgPath, 'utf8');
+      const dataUrl: string = `data:image/svg+xml;base64,${Buffer.from(svgData).toString('base64')}`;
 
       const img = await loadImage(dataUrl);
       const canvas = createCanvas(size, size);
@@ -67,7 +67,7 @@ async function convertWithCanvas() {
 
       ctx.drawImage(img, 0, 0, size, size);
 
-      const buffer = canvas.toBuffer('image/png');
+      const buffer: Buffer = canvas.toBuffer('image/png');
       fs.writeFileSync(pngPath, buffer);
 
       console.log(`✓ Converted: icon${size}.png (${size}x${size})`);
@@ -80,7 +80,7 @@ async function convertWithCanvas() {
   }
 }
 
-function convertWithBrowserAPI() {
+function convertWithBrowserAPI(): void {
   console.log('📝 Browser-based conversion instructions:\n');
   console.log('1. Open generate-icons.html in your browser');
   console.log('2. Click "Download All Icons"');
@@ -90,7 +90,7 @@ function convertWithBrowserAPI() {
   console.log('- https://convertio.co/svg-png/\n');
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🎨 Converting SVG icons to PNG...\n');
 
   // Try Sharp first (best option)
@@ -113,4 +113,3 @@ async function main() {
 }
 
 main().catch(console.error);
-

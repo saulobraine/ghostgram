@@ -5,23 +5,23 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createCanvas } from 'canvas';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const iconsDir = path.join(rootDir, 'icons');
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
+const rootDir: string = path.resolve(__dirname, '..');
+const iconsDir: string = path.join(rootDir, 'icons');
 
 // Icon sizes required by Chrome
-const iconSizes = [16, 48, 128];
+const iconSizes: number[] = [16, 48, 128];
 
 // Colors for the icon
-const colors = {
+const colors: Record<string, string> = {
   primary: '#E4405F', // Instagram pink
   secondary: '#833AB4', // Instagram purple
   accent: '#FCAF45', // Instagram yellow
   background: '#FFFFFF'
 };
 
-function createIcon(size) {
+function createIcon(size: number): Buffer {
   // Try to use canvas if available, otherwise create a simple SVG
   try {
     const canvas = createCanvas(size, size);
@@ -39,9 +39,9 @@ function createIcon(size) {
     
     // Draw Instagram camera icon (simplified)
     ctx.fillStyle = colors.background;
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const radius = size * 0.3;
+    const centerX: number = size / 2;
+    const centerY: number = size / 2;
+    const radius: number = size * 0.3;
     
     // Draw camera body
     ctx.beginPath();
@@ -67,8 +67,8 @@ function createIcon(size) {
   }
 }
 
-function createSVGIcon(size) {
-  const svg = `
+function createSVGIcon(size: number): Buffer {
+  const svg: string = `
 <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -85,7 +85,7 @@ function createSVGIcon(size) {
   return Buffer.from(svg);
 }
 
-function generateIcons() {
+function generateIcons(): void {
   console.log('🎨 Generating extension icons...\n');
 
   // Create icons directory if it doesn't exist
@@ -95,15 +95,15 @@ function generateIcons() {
   }
 
   // Generate each icon size
-  iconSizes.forEach(size => {
+  iconSizes.forEach((size: number) => {
     try {
-      const iconData = createIcon(size);
-      const iconPath = path.join(iconsDir, `icon${size}.png`);
+      const iconData: Buffer = createIcon(size);
+      const iconPath: string = path.join(iconsDir, `icon${size}.png`);
       
       // If we got SVG, convert to PNG or save as SVG
       if (iconData.toString().includes('<svg')) {
         // Save as SVG (Chrome accepts SVG in some contexts, but PNG is preferred)
-        const svgPath = path.join(iconsDir, `icon${size}.svg`);
+        const svgPath: string = path.join(iconsDir, `icon${size}.svg`);
         fs.writeFileSync(svgPath, iconData);
         console.log(`⚠️  Generated SVG icon: icon${size}.svg (PNG preferred)`);
         console.log(`   You may need to convert this to PNG manually`);
@@ -112,7 +112,7 @@ function generateIcons() {
         console.log(`✓ Generated icon: icon${size}.png (${size}x${size})`);
       }
     } catch (error) {
-      console.error(`❌ Error generating icon${size}.png:`, error.message);
+      console.error(`❌ Error generating icon${size}.png:`, (error as Error).message);
       // Create a simple placeholder
       createPlaceholderIcon(size);
     }
@@ -131,18 +131,17 @@ function generateIcons() {
   }
 }
 
-function createPlaceholderIcon(size) {
+function createPlaceholderIcon(size: number): void {
   // Create a simple colored square as placeholder
-  const svg = `
+  const svg: string = `
 <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${size}" height="${size}" fill="${colors.primary}"/>
   <text x="50%" y="50%" font-family="Arial" font-size="${size * 0.4}" fill="white" text-anchor="middle" dominant-baseline="middle">IG</text>
 </svg>`;
-  const svgPath = path.join(iconsDir, `icon${size}.svg`);
+  const svgPath: string = path.join(iconsDir, `icon${size}.svg`);
   fs.writeFileSync(svgPath, svg);
   console.log(`✓ Created placeholder SVG: icon${size}.svg`);
 }
 
 // Run
 generateIcons();
-

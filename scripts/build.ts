@@ -3,33 +3,47 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import archiver from 'archiver';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const distDir = path.join(rootDir, 'dist');
-const buildDir = path.join(rootDir, 'build');
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
+const rootDir: string = path.resolve(__dirname, '..');
+const distDir: string = path.join(rootDir, 'dist');
+const buildDir: string = path.join(rootDir, 'build');
+
+// Compile TypeScript before building
+console.log('🔧 Compiling TypeScript...');
+try {
+  execSync('npx tsc --project tsconfig.build.json', { cwd: rootDir, stdio: 'inherit' });
+  console.log('✓ TypeScript compiled successfully\n');
+} catch (error) {
+  console.error('❌ TypeScript compilation failed');
+  process.exit(1);
+}
 
 // Files and directories to include in build
-const filesToCopy = [
+const filesToCopy: string[] = [
   'manifest.json',
   'content.js',
+  'content-main.js',
   'background.js',
   'popup.html',
   'popup.js',
+  'popup.css',
   'options.html',
   'options.js',
   'styles.css',
-  'bundle.js'
+  'history.html',
+  'history.js'
 ];
 
-const dirsToCopy = [
+const dirsToCopy: string[] = [
   'src',
   'icons'
 ];
 
-const filesToExclude = [
+const filesToExclude: string[] = [
   'node_modules',
   'tests',
   'coverage',
@@ -48,15 +62,15 @@ const filesToExclude = [
   '.github'
 ];
 
-function cleanDirectory(dir) {
+function cleanDirectory(dir: string): void {
   if (fs.existsSync(dir)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function copyFile(src, dest) {
-  const destDir = path.dirname(dest);
+function copyFile(src: string, dest: string): void {
+  const destDir: string = path.dirname(dest);
   if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir, { recursive: true });
   }
@@ -64,22 +78,22 @@ function copyFile(src, dest) {
   console.log(`✓ Copied: ${path.relative(rootDir, src)}`);
 }
 
-function copyDirectory(src, dest) {
+function copyDirectory(src: string, dest: string): void {
   if (!fs.existsSync(src)) {
     console.warn(`⚠ Directory not found: ${src}`);
     return;
   }
 
-  const destDir = path.join(dest, path.basename(src));
+  const destDir: string = path.join(dest, path.basename(src));
   if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir, { recursive: true });
   }
 
-  const files = fs.readdirSync(src);
-  files.forEach(file => {
-    const srcPath = path.join(src, file);
-    const destPath = path.join(destDir, file);
-    const stat = fs.statSync(srcPath);
+  const files: string[] = fs.readdirSync(src);
+  files.forEach((file: string) => {
+    const srcPath: string = path.join(src, file);
+    const destPath: string = path.join(destDir, file);
+    const stat: fs.Stats = fs.statSync(srcPath);
 
     if (stat.isDirectory()) {
       copyDirectory(srcPath, destDir);
@@ -89,18 +103,18 @@ function copyDirectory(src, dest) {
   });
 }
 
-function shouldExclude(filePath) {
-  const relativePath = path.relative(rootDir, filePath);
-  return filesToExclude.some(pattern => {
+function shouldExclude(filePath: string): boolean {
+  const relativePath: string = path.relative(rootDir, filePath);
+  return filesToExclude.some((pattern: string) => {
     if (pattern.includes('*')) {
-      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      const regex: RegExp = new RegExp(pattern.replace(/\*/g, '.*'));
       return regex.test(relativePath);
     }
     return relativePath.includes(pattern);
   });
 }
 
-function buildExtension() {
+function buildExtension(): Promise<void> {
   console.log('🚀 Starting build process...\n');
 
   // Clean build directory
@@ -110,10 +124,10 @@ function buildExtension() {
 
   // Copy files
   console.log('📋 Copying files...');
-  filesToCopy.forEach(file => {
-    const srcPath = path.join(rootDir, file);
+  filesToCopy.forEach((file: string) => {
+    const srcPath: string = path.join(rootDir, file);
     if (fs.existsSync(srcPath)) {
-      const destPath = path.join(buildDir, file);
+      const destPath: string = path.join(buildDir, file);
       copyFile(srcPath, destPath);
     } else {
       console.warn(`⚠ File not found: ${file}`);
@@ -123,8 +137,8 @@ function buildExtension() {
 
   // Copy directories
   console.log('📁 Copying directories...');
-  dirsToCopy.forEach(dir => {
-    const srcPath = path.join(rootDir, dir);
+  dirsToCopy.forEach((dir: string) => {
+    const srcPath: string = path.join(rootDir, dir);
     if (fs.existsSync(srcPath)) {
       copyDirectory(srcPath, buildDir);
     } else {
@@ -135,9 +149,9 @@ function buildExtension() {
 
   // Validate manifest
   console.log('🔍 Validating manifest...');
-  const manifestPath = path.join(buildDir, 'manifest.json');
+  const manifestPath: string = path.join(buildDir, 'manifest.json');
   if (fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifest: { name: string; version: string } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     console.log(`✓ Manifest validated: ${manifest.name} v${manifest.version}`);
   } else {
     throw new Error('Manifest.json not found in build directory!');
@@ -146,17 +160,17 @@ function buildExtension() {
 
   // Create zip file
   console.log('📦 Creating extension package...');
-  const zipPath = path.join(rootDir, 'extension.zip');
+  const zipPath: string = path.join(rootDir, 'extension.zip');
   if (fs.existsSync(zipPath)) {
     fs.unlinkSync(zipPath);
   }
 
-  return new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+  return new Promise<void>((resolve, reject) => {
+    const output: fs.WriteStream = fs.createWriteStream(zipPath);
+    const archive: archiver.Archiver = archiver('zip', { zlib: { level: 9 } });
 
     output.on('close', () => {
-      const sizeInMB = (archive.pointer() / 1024 / 1024).toFixed(2);
+      const sizeInMB: string = (archive.pointer() / 1024 / 1024).toFixed(2);
       console.log(`✓ Extension package created: extension.zip (${sizeInMB} MB)`);
       console.log(`\n✅ Build completed successfully!`);
       console.log(`📦 Build directory: ${buildDir}`);
@@ -164,7 +178,7 @@ function buildExtension() {
       resolve();
     });
 
-    archive.on('error', (err) => {
+    archive.on('error', (err: Error) => {
       reject(err);
     });
 
@@ -179,8 +193,7 @@ buildExtension()
   .then(() => {
     process.exit(0);
   })
-  .catch((error) => {
+  .catch((error: Error) => {
     console.error('❌ Build failed:', error);
     process.exit(1);
   });
-
