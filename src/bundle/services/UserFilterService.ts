@@ -1,6 +1,9 @@
 // UserFilterService - Service for filtering users
 import { Filter } from '../domain/Filter.js';
 import { Whitelist } from '../domain/Whitelist.js';
+import type { Settings } from '../../domain/Settings.js';
+import type { User } from '../domain/User.js';
+import type { IFilterObject } from '../../types/domain.js';
 
 /**
  * Serviço responsável por filtrar usuários baseado em critérios diversos
@@ -9,15 +12,22 @@ import { Whitelist } from '../domain/Whitelist.js';
 export class UserFilterService {
   /**
    * Filtra uma lista de usuários baseado em múltiplos critérios
-   * @param {Array<User>} users - Lista de usuários para filtrar
-   * @param {Filter|Object} filter - Filtro de tipos de usuários
-   * @param {string} searchTerm - Termo de pesquisa (opcional)
-   * @param {Whitelist|Array} whitelist - Lista de usuários na whitelist
-   * @param {string} currentTab - Aba ativa ('non_whitelisted' ou 'whitelisted')
-   * @param {Settings} settings - Configurações do sistema
-   * @returns {Array<User>} Lista filtrada de usuários
+   * @param users - Lista de usuários para filtrar
+   * @param filter - Filtro de tipos de usuários
+   * @param searchTerm - Termo de pesquisa (opcional)
+   * @param whitelist - Lista de usuários na whitelist
+   * @param currentTab - Aba ativa ('non_whitelisted' ou 'whitelisted')
+   * @param settings - Configurações do sistema
+   * @returns Lista filtrada de usuários
    */
-  filter(users, filter, searchTerm, whitelist, currentTab, settings) {
+  filter(
+    users: User[],
+    filter: Filter | IFilterObject,
+    searchTerm: string | null | undefined,
+    whitelist: Whitelist | User[] | null | undefined,
+    currentTab: string,
+    settings: Settings
+  ): User[] {
     const normalizedFilter = filter instanceof Filter ? filter : Filter.fromObject(filter);
     const normalizedWhitelist = whitelist instanceof Whitelist ? whitelist : Whitelist.fromArray(whitelist || []);
     const normalizedSearchTerm = (searchTerm || '').toLowerCase().trim();
@@ -29,7 +39,7 @@ export class UserFilterService {
     });
   }
 
-  _matchesTab(user, whitelist, currentTab) {
+  private _matchesTab(user: User, whitelist: Whitelist, currentTab: string): boolean {
     const isWhitelisted = whitelist.contains(user);
 
     if (currentTab === 'non_whitelisted') {
@@ -43,7 +53,7 @@ export class UserFilterService {
     return true;
   }
 
-  _matchesFilter(user, filter, settings) {
+  private _matchesFilter(user: User, filter: Filter, settings: Settings): boolean {
     if (!filter.showPrivate() && user.isPrivate()) {
       return false;
     }
@@ -67,7 +77,7 @@ export class UserFilterService {
     return true;
   }
 
-  _matchesSearch(user, searchTerm) {
+  private _matchesSearch(user: User, searchTerm: string): boolean {
     if (!searchTerm) {
       return true;
     }
@@ -78,10 +88,9 @@ export class UserFilterService {
     return username.includes(searchTerm) || fullName.includes(searchTerm);
   }
 
-  _hasDefaultProfilePicture(user, settings) {
+  private _hasDefaultProfilePicture(user: User, settings: Settings): boolean {
     const profilePicUrl = user.getProfilePicUrl();
     const withoutPicIds = settings.getWithoutProfilePictureUrlIds();
     return withoutPicIds.some(id => profilePicUrl.includes(id));
   }
 }
-

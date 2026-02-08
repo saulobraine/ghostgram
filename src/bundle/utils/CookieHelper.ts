@@ -1,11 +1,15 @@
 // CookieHelper - Utilitário para operações de cookies
+
+/**
+ * Classe utilitária para operações com cookies do navegador
+ */
 export class CookieHelper {
   /**
    * Busca o valor de um cookie pelo nome
-   * @param {string} name - Nome do cookie
-   * @returns {string|null} Valor do cookie ou null se não encontrado
+   * @param name - Nome do cookie
+   * @returns Valor do cookie ou null se não encontrado
    */
-  static getCookie(name) {
+  static getCookie(name: string): string | null {
     const cookies = `; ${document.cookie}`;
     const parts = cookies.split(`; ${name}=`);
 
@@ -13,24 +17,22 @@ export class CookieHelper {
       return null;
     }
 
-    return parts.pop().split(';').shift();
+    return parts.pop()?.split(';').shift() || null;
   }
 
   /**
    * Atalho para buscar o token CSRF
-   * @returns {string|null} Token CSRF
+   * @returns Token CSRF ou null
    */
-  static getCsrfToken() {
+  static getCsrfToken(): string | null {
     return CookieHelper.getCookie('csrftoken');
   }
 
   /**
    * Atalho para buscar o ID do usuário logado
-   * @returns {string|null} ID do usuário
+   * @returns ID do usuário ou null
    */
-  static getUserId() {
+  static getUserId(): string | null {
     return CookieHelper.getCookie('ds_user_id');
   }
 }
-
-

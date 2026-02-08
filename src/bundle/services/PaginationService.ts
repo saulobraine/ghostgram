@@ -1,5 +1,6 @@
 // PaginationService - Service for pagination operations
 import { UNFOLLOWERS_PER_PAGE } from '../../constants/Constants.js';
+import type { User } from '../domain/User.js';
 
 /**
  * Serviço responsável por operações de paginação de usuários
@@ -7,11 +8,11 @@ import { UNFOLLOWERS_PER_PAGE } from '../../constants/Constants.js';
 export class PaginationService {
   /**
    * Retorna os usuários de uma página específica
-   * @param {Array<User>} users - Lista completa de usuários
-   * @param {number} pageNumber - Número da página (começa em 1)
-   * @returns {Array<User>} Usuários da página solicitada
+   * @param users - Lista completa de usuários
+   * @param pageNumber - Número da página (começa em 1)
+   * @returns Usuários da página solicitada
    */
-  static getPage(users, pageNumber) {
+  static getPage(users: User[], pageNumber: number): User[] {
     const startIndex = UNFOLLOWERS_PER_PAGE * (pageNumber - 1);
     const endIndex = startIndex + UNFOLLOWERS_PER_PAGE;
     return users.slice(startIndex, endIndex);
@@ -19,10 +20,10 @@ export class PaginationService {
 
   /**
    * Calcula o número máximo de páginas para uma lista de usuários
-   * @param {Array<User>} users - Lista de usuários
-   * @returns {number} Número máximo de páginas (mínimo 1)
+   * @param users - Lista de usuários
+   * @returns Número máximo de páginas (mínimo 1)
    */
-  static getMaxPage(users) {
+  static getMaxPage(users: User[] | null | undefined): number {
     if (!users || users.length === 0) {
       return 1;
     }
@@ -33,12 +34,11 @@ export class PaginationService {
 
   /**
    * Retorna os usuários da página atual (alias para getPage)
-   * @param {Array<User>} users - Lista completa de usuários
-   * @param {number} pageNumber - Número da página (começa em 1)
-   * @returns {Array<User>} Usuários da página solicitada
+   * @param users - Lista completa de usuários
+   * @param pageNumber - Número da página (começa em 1)
+   * @returns Usuários da página solicitada
    */
-  static getCurrentPage(users, pageNumber) {
+  static getCurrentPage(users: User[], pageNumber: number): User[] {
     return PaginationService.getPage(users, pageNumber);
   }
 }
-

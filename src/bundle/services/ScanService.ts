@@ -1,13 +1,42 @@
 // ScanService - Serviço para escanear seguidores do Instagram
 import { InstagramApiClient } from './InstagramApiClient.js';
 import { DelayHelper } from '../utils/DelayHelper.js';
-import { Settings } from '../../domain/Settings.js';
+import type { Settings } from '../../domain/Settings.js';
+import type { User } from '../domain/User.js';
+
+interface ScanOptions {
+  initialResults?: User[];
+  startCursor?: string | null;
+  initialProcessedCount?: number;
+  initialTotalCount?: number;
+}
+
+type ProgressCallback = (
+  percentage: number,
+  results: User[],
+  cursor: string | null,
+  processedCount: number,
+  totalCount: number
+) => void;
+
+interface FetchPageResponse {
+  users: User[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+  totalCount: number;
+}
 
 /**
  * Serviço responsável pela lógica de consulta à API do Instagram
  */
 export class ScanService {
-  constructor(apiClient, settings, onProgress) {
+  private _apiClient: InstagramApiClient;
+  private _settings: Settings;
+  private _onProgress: ProgressCallback | null;
+  private _isPaused: boolean;
+  private _shouldStop: boolean;
+
+  constructor(apiClient: InstagramApiClient, settings: Settings, onProgress: ProgressCallback | null = null) {
     this._apiClient = apiClient;
     this._settings = settings;
     this._onProgress = onProgress;
@@ -17,13 +46,10 @@ export class ScanService {
 
   /**
    * Inicia o processo de scan
-   * @param {Object} options - Opções de retomada (opcional)
-   * @param {Array} options.initialResults - Resultados já obtidos
-   * @param {string} options.startCursor - Cursor para iniciar
-   * @param {number} options.initialProcessedCount - Contagem inicial de processados
-   * @returns {Promise<Array>} Lista de resultados
+   * @param options - Opções de retomada (opcional)
+   * @returns Lista de resultados
    */
-  async start(options = {}) {
+  async start(options: ScanOptions = {}): Promise<User[]> {
     const {
       initialResults = [],
       startCursor = null,
@@ -35,7 +61,7 @@ export class ScanService {
     this._shouldStop = false;
 
     const results = [...initialResults];
-    let cursor = startCursor;
+    let cursor: string | null = startCursor;
     let totalCount = initialTotalCount;
     let processedCount = initialProcessedCount;
     let cycleCount = 0;
@@ -84,20 +110,20 @@ export class ScanService {
     return results;
   }
 
-  pause() {
+  pause(): void {
     this._isPaused = true;
   }
 
-  resume() {
+  resume(): void {
     this._isPaused = false;
   }
 
-  stop() {
+  stop(): void {
     this._shouldStop = true;
     this._isPaused = false;
   }
 
-  async _fetchPage(cursor) {
+  private async _fetchPage(cursor: string | null): Promise<FetchPageResponse> {
     try {
       return await this._apiClient.fetchFollowers(this._settings, cursor);
     } catch (error) {
@@ -106,7 +132,7 @@ export class ScanService {
     }
   }
 
-  async _waitBetweenCycles(cycleCount) {
+  private async _waitBetweenCycles(cycleCount: number): Promise<void> {
     const baseDelay = this._settings.getTimeBetweenSearchCycles();
     const randomDelay = DelayHelper.calculateRandomDelayWithVariation(baseDelay, 0.3);
     await DelayHelper.sleep(randomDelay);
@@ -117,15 +143,19 @@ export class ScanService {
     }
   }
 
-  _shouldWaitAfterFiveCycles(cycleCount) {
+  private _shouldWaitAfterFiveCycles(cycleCount: number): boolean {
     return cycleCount > 0 && cycleCount % 5 === 0;
   }
 
-  _notifyProgress(percentage, results, cursor, processedCount, totalCount) {
+  private _notifyProgress(
+    percentage: number,
+    results: User[],
+    cursor: string | null,
+    processedCount: number,
+    totalCount: number
+  ): void {
     if (this._onProgress) {
       this._onProgress(percentage, results, cursor, processedCount, totalCount);
     }
   }
 }
-
-
