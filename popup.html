@@ -36,51 +36,6 @@
     <div class="popup-settings">
       <div class="popup-settings__title">Configurações Rápidas</div>
 
-      <!-- Panel Position -->
-      <div class="popup-settings__item">
-        <span class="popup-settings__item-label">Posição do Painel</span>
-        <div class="popup-select" id="positionSelect">
-          <button
-            type="button"
-            class="popup-select__button"
-            id="positionSelectBtn"
-          >
-            <span id="positionSelectLabel">Inferior Direito</span>
-            <span class="popup-select__arrow">▼</span>
-          </button>
-          <div class="popup-select__menu" id="positionSelectMenu">
-            <button
-              type="button"
-              class="popup-select__option"
-              data-value="top-left"
-            >
-              Superior Esquerdo
-            </button>
-            <button
-              type="button"
-              class="popup-select__option"
-              data-value="top-right"
-            >
-              Superior Direito
-            </button>
-            <button
-              type="button"
-              class="popup-select__option popup-select__option--selected"
-              data-value="bottom-right"
-            >
-              Inferior Direito
-            </button>
-            <button
-              type="button"
-              class="popup-select__option"
-              data-value="bottom-left"
-            >
-              Inferior Esquerdo
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Start Expanded -->
       <div class="popup-settings__item">
         <span class="popup-settings__item-label">Iniciar Expandido</span>
@@ -108,24 +63,9 @@
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="popup-actions">
-      <button
-        type="button"
-        id="openInstagram"
-        class="popup-actions__btn popup-actions__btn--primary"
-      >
-        <span class="popup-actions__btn-icon">📷</span>
-        <span>Instagram</span>
-      </button>
-      <button
-        type="button"
-        id="openSettings"
-        class="popup-actions__btn popup-actions__btn--secondary popup-tooltip"
-        data-tooltip="Configurações Avançadas"
-      >
-        <span class="popup-actions__btn-icon">⚙️</span>
-      </button>
+    <!-- Actions — condicional: Instagram ou não -->
+    <div class="popup-actions" id="actionsSection">
+      <!-- Conteúdo injetado via JS -->
     </div>
 
     <script type="module" src="popup.js"></script>

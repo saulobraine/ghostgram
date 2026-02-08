@@ -1,12 +1,24 @@
 // StatusUpdater - SRP: Update UI status
+
+/**
+ * Classe responsável por atualizar o status da UI do popup
+ */
 export class StatusUpdater {
-  constructor(statusElement, toggleButton, startScanButton = null) {
+  private _statusElement: HTMLElement;
+  private _toggleButton: HTMLButtonElement;
+  private _startScanButton: HTMLElement | null;
+
+  constructor(
+    statusElement: HTMLElement,
+    toggleButton: HTMLButtonElement,
+    startScanButton: HTMLElement | null = null
+  ) {
     this._statusElement = statusElement;
     this._toggleButton = toggleButton;
     this._startScanButton = startScanButton;
   }
 
-  update(enabled) {
+  update(enabled: boolean): void {
     if (enabled) {
       this._setActive();
       return;
@@ -14,7 +26,7 @@ export class StatusUpdater {
     this._setInactive();
   }
 
-  _setActive() {
+  private _setActive(): void {
     this._statusElement.textContent = 'Extension is Active';
     this._statusElement.className = 'status active';
     this._toggleButton.textContent = 'Disable Extension';
@@ -24,7 +36,7 @@ export class StatusUpdater {
     }
   }
 
-  _setInactive() {
+  private _setInactive(): void {
     this._statusElement.textContent = 'Extension is Inactive';
     this._statusElement.className = 'status inactive';
     this._toggleButton.textContent = 'Enable Extension';
@@ -34,4 +46,3 @@ export class StatusUpdater {
     }
   }
 }
-

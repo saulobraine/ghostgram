@@ -1,4 +1,5 @@
 /* GhostGram Popup Styles */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
 
 * {
   box-sizing: border-box;
@@ -8,7 +9,7 @@
 
 body {
   width: 320px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
   background: #111;
   color: #fff;
   padding: 0;
@@ -252,6 +253,27 @@ body {
   padding: 16px;
 }
 
+.popup-actions--column {
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cooldown select in popup */
+.popup-cooldown-select {
+  padding: 5px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+.popup-cooldown-select:focus {
+  border-color: #e1306c;
+}
+
 .popup-actions__btn {
   flex: 1;
   display: flex;
@@ -261,6 +283,7 @@ body {
   padding: 12px 16px;
   border: none;
   border-radius: 8px;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -288,8 +311,53 @@ body {
   border-color: #555;
 }
 
+.popup-actions__btn--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.popup-actions__btn--danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.popup-actions__row {
+  display: flex;
+  gap: 8px;
+}
+
 .popup-actions__btn-icon {
   font-size: 16px;
+}
+
+/* Toast feedback */
+@keyframes popup-toast-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes popup-feedback-in {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+.popup-toast {
+  text-align: center;
+  padding: 6px 12px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: popup-toast-in 0.2s ease-out both;
+}
+.popup-toggle-feedback {
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+  animation: popup-feedback-in 0.2s ease-out both;
 }
 
 /* Small Toggle (for settings items) */
@@ -349,4 +417,20 @@ body {
 .popup-tooltip:hover::after {
   opacity: 1;
   visibility: visible;
+}
+
+/* Estado "não está no Instagram" */
+.popup-not-instagram {
+  padding: 24px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.popup-not-instagram__msg {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.5;
 }
