@@ -3,13 +3,29 @@ import { MESSAGE_ACTIONS } from '../constants/Constants.js';
 import { ExtensionState } from '../domain/ExtensionState.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
 import { STORAGE_KEYS } from '../constants/Constants.js';
+import type { StorageAdapter } from '../storage/StorageAdapter.js';
 
+interface MessageRequest {
+  action: string;
+  enabled?: boolean;
+  [key: string]: any;
+}
+
+/**
+ * Router responsável por rotear mensagens para handlers apropriados
+ */
 export class MessageRouter {
-  constructor(storageAdapter) {
+  private _storage: StorageAdapter;
+
+  constructor(storageAdapter?: StorageAdapter) {
     this._storage = storageAdapter || new LocalStorageAdapter();
   }
 
-  async route(request, sender, sendResponse) {
+  async route(
+    request: MessageRequest,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<boolean> {
     console.log('[MessageRouter] Mensagem recebida:', request.action);
 
     if (request.action === MESSAGE_ACTIONS.GET_STATUS) {
@@ -28,29 +44,31 @@ export class MessageRouter {
     return false;
   }
 
-  async _handleOpenHistory(sendResponse) {
+  private async _handleOpenHistory(sendResponse: (response?: any) => void): Promise<void> {
     chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
     sendResponse({ success: true });
   }
 
-  async _handleGetStatus(sendResponse) {
+  private async _handleGetStatus(sendResponse: (response?: any) => void): Promise<void> {
     const state = await this._getCurrentState();
     sendResponse({ enabled: state.isEnabled() });
   }
 
-  async _handleUpdateStatus(request, sendResponse) {
+  private async _handleUpdateStatus(
+    request: MessageRequest,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
     const state = ExtensionState.fromStorageValue(request.enabled);
     await this._saveState(state);
     sendResponse({ success: true });
   }
 
-  async _getCurrentState() {
+  private async _getCurrentState(): Promise<ExtensionState> {
     const value = await this._storage.get(STORAGE_KEYS.ENABLED);
     return ExtensionState.fromStorageValue(value);
   }
 
-  async _saveState(state) {
+  private async _saveState(state: ExtensionState): Promise<void> {
     await this._storage.set(STORAGE_KEYS.ENABLED, state.toStorageValue());
   }
 }
-
