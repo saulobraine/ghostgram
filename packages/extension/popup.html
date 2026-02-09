@@ -68,6 +68,52 @@
       <!-- Conteúdo injetado via JS -->
     </div>
 
+    <!-- Auth Section (hidden by default) -->
+    <div class="popup-auth" id="authSection" style="display: none;">
+      <div class="popup-auth__title">Conectar com GhostGram</div>
+      <div class="popup-auth__subtitle">
+        Entre para sincronizar seus dados e acessar recursos premium
+      </div>
+      
+      <div id="authForm">
+        <input
+          type="email"
+          id="authEmail"
+          class="popup-auth__input"
+          placeholder="E-mail"
+        />
+        <input
+          type="password"
+          id="authPassword"
+          class="popup-auth__input"
+          placeholder="Senha"
+        />
+        <button id="loginBtn" class="popup-auth__button">Entrar</button>
+        <button id="registerBtn" class="popup-auth__button popup-auth__button--secondary">
+          Criar conta
+        </button>
+      </div>
+      
+      <div id="authStatus" style="display: none;">
+        <div class="popup-auth__user">
+          Conectado como: <strong id="userEmail"></strong>
+        </div>
+        <button id="logoutBtn" class="popup-auth__button popup-auth__button--small">
+          Sair
+        </button>
+      </div>
+      
+      <div id="planStatus" style="display: none; margin-top: 12px;">
+        <div class="popup-plan">
+          <span class="popup-plan__label">Plano:</span>
+          <span id="planName" class="popup-plan__name">Free</span>
+        </div>
+        <button id="upgradeBtn" class="popup-auth__button popup-auth__button--premium" style="display: none;">
+          ✨ Fazer upgrade para Premium
+        </button>
+      </div>
+    </div>
+
     <script type="module" src="popup.js"></script>
   </body>
 </html>

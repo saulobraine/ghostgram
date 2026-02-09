@@ -434,3 +434,123 @@ body {
   color: #999;
   line-height: 1.5;
 }
+
+/* Auth Section */
+.popup-auth {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.popup-auth__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.popup-auth__subtitle {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.popup-auth__input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  margin-bottom: 8px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.popup-auth__input:focus {
+  border-color: #e1306c;
+}
+
+.popup-auth__button {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.popup-auth__button:last-child {
+  margin-bottom: 0;
+}
+
+.popup-auth__button {
+  background: linear-gradient(135deg, #833ab4 0%, #e1306c 50%, #fcaf45 100%);
+  color: #fff;
+}
+
+.popup-auth__button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(225, 48, 108, 0.4);
+}
+
+.popup-auth__button--secondary {
+  background: #222;
+  border: 1px solid #444;
+  color: #ccc;
+}
+
+.popup-auth__button--secondary:hover {
+  background: #2a2a2a;
+  border-color: #555;
+  box-shadow: none;
+}
+
+.popup-auth__button--small {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.popup-auth__button--premium {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #000;
+}
+
+.popup-auth__user {
+  padding: 10px 12px;
+  background: rgba(86, 215, 86, 0.1);
+  border: 1px solid rgba(86, 215, 86, 0.3);
+  border-radius: 6px;
+  color: #56d756;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.popup-plan {
+  padding: 8px 12px;
+  background: #222;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup-plan__label {
+  color: #888;
+}
+
+.popup-plan__name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.popup-plan__name--premium {
+  color: #ffd700;
+}
