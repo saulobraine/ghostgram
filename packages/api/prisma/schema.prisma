@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  displayName String?
+  locale      String   @default("pt-BR")
+  plan        Plan     @default(FREE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  instagramAccounts InstagramAccount[]
+  subscription      Subscription?
+
+  @@map("users")
+}
+
+model InstagramAccount {
+  id         String   @id @default(uuid())
+  userId     String
+  igUsername String
+  igUserId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scans        Scan[]
+  actions      ActionHistory[]
+  whitelistEntries WhitelistEntry[]
+
+  @@unique([userId, igUsername])
+  @@map("instagram_accounts")
+}
+
+model Scan {
+  id              String   @id @default(uuid())
+  accountId       String
+  totalFollowing  Int
+  nonFollowers    Int
+  resultData      Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("scans")
+}
+
+model ActionHistory {
+  id             String   @id @default(uuid())
+  accountId      String
+  actionType     String
+  targetUsername String
+  source         String   @default("manual")
+  metadata       Json?
+  timestamp      DateTime @default(now())
+
+  // Relations
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, timestamp])
+  @@map("action_history")
+}
+
+model WhitelistEntry {
+  id         String   @id @default(uuid())
+  accountId  String
+  igUsername String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, igUsername])
+  @@map("whitelist")
+}
+
+model Subscription {
+  id               String             @id @default(uuid())
+  userId           String             @unique
+  stripeCustomerId String             @unique
+  stripeSubId      String?            @unique
+  plan             Plan
+  status           SubscriptionStatus @default(ACTIVE)
+  expiresAt        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
