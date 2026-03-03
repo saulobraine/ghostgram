@@ -2,8 +2,8 @@
  * API Data Transfer Objects (DTOs)
  */
 
-import { IUserObject, IFilterObject } from '../types/domain.js';
-import { Plan, SubscriptionStatus, ActionType } from '../constants/index.js';
+import { IUserObject, IFilterObject } from "../types/domain";
+import { Plan, SubscriptionStatus, ActionType } from "../constants/index";
 
 // Auth DTOs
 export interface RegisterDTO {
@@ -90,7 +90,7 @@ export interface CreateActionDTO {
 
 export interface SyncActionsDTO {
   accountId: string;
-  actions: Omit<CreateActionDTO, 'accountId'>[];
+  actions: Omit<CreateActionDTO, "accountId">[];
 }
 
 export interface ActionStatsDTO {

@@ -1,22 +1,31 @@
 // Logo - Componente de apresentação (Vanilla JS)
 
-const GHOST_EMOJI = '👻';
-
 /**
- * Retorna o emoji do GhostGram.
+ * Retorna a URL do ícone PNG do GhostGram.
  * Ponto centralizado para definição do ícone em toda a extensão.
  */
-export function getIcon(): string {
-  return GHOST_EMOJI;
+export function getIconUrl(): string {
+  return chrome.runtime.getURL('icons/icon48.png');
 }
 
 /**
- * Cria o elemento do logo do GhostGram usando emoji
+ * Retorna o elemento <img> inline do ícone do GhostGram.
+ * Usado em textos onde o ícone precisa aparecer inline.
  */
-export function Logo(): HTMLSpanElement {
-  const span = document.createElement('span');
-  span.textContent = getIcon();
-  span.style.fontSize = '28px';
-  span.style.lineHeight = '1';
-  return span;
+export function getIcon(): string {
+  const url = typeof chrome !== 'undefined' && chrome.runtime ? getIconUrl() : '';
+  return `<img src="${url}" alt="GhostGram" width="16" height="16" style="vertical-align:middle;margin-right:4px;">`;
+}
+
+/**
+ * Cria o elemento <img> do logo do GhostGram usando PNG
+ */
+export function Logo(): HTMLImageElement {
+  const img = document.createElement('img');
+  img.src = getIconUrl();
+  img.alt = 'GhostGram';
+  img.width = 28;
+  img.height = 28;
+  img.style.verticalAlign = 'middle';
+  return img;
 }

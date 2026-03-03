@@ -145,7 +145,7 @@ class ContentScript {
 
       // Importa e inicializa o FloatingPanelApp
       const module = await import(
-        chrome.runtime.getURL('src/bundle/FloatingPanelApp.js')
+        /* @vite-ignore */ chrome.runtime.getURL('src/bundle/FloatingPanelApp.js')
       ) as { FloatingPanelApp: new () => FloatingPanelApp };
 
       // Cria container se não existir

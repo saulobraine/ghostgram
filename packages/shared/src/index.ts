@@ -3,9 +3,9 @@
  * Shared types, constants, and utilities for GhostGram monorepo
  */
 
-export * from './types/index.js';
-export * from './constants/index.js';
-export * from './dto/index.js';
-export * from './domain/index.js';
-export * from './i18n/index.js';
-export * from './utils/index.js';
+export * from "./types/index";
+export * from "./constants/index";
+export * from "./dto/index";
+export * from "./domain/index";
+export * from "./i18n/index";
+export * from "./utils/index";

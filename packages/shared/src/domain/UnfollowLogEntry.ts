@@ -1,6 +1,6 @@
 // UnfollowLogEntry - Value Object (Wrap primitives)
-import { User } from './User.js';
-import type { IUserObject } from '../types/domain.js';
+import { User } from "./User";
+import type { IUserObject } from "../types/domain";
 
 /**
  * Value Object que representa uma entrada de log de unfollow
@@ -10,9 +10,13 @@ export class UnfollowLogEntry {
   private readonly _unfollowedSuccessfully: boolean;
   private readonly _timestamp: number;
 
-  constructor(user: User | IUserObject, unfollowedSuccessfully: boolean, timestamp?: number) {
+  constructor(
+    user: User | IUserObject,
+    unfollowedSuccessfully: boolean,
+    timestamp?: number,
+  ) {
     this._validate(user, unfollowedSuccessfully);
-    
+
     this._user = user instanceof User ? user : User.fromObject(user);
     this._unfollowedSuccessfully = Boolean(unfollowedSuccessfully);
     this._timestamp = timestamp || Date.now();
@@ -28,10 +32,10 @@ export class UnfollowLogEntry {
 
   private _validate(user: unknown, unfollowedSuccessfully: unknown): void {
     if (!user) {
-      throw new Error('User is required for UnfollowLogEntry');
+      throw new Error("User is required for UnfollowLogEntry");
     }
-    if (typeof unfollowedSuccessfully !== 'boolean') {
-      throw new Error('unfollowedSuccessfully must be a boolean');
+    if (typeof unfollowedSuccessfully !== "boolean") {
+      throw new Error("unfollowedSuccessfully must be a boolean");
     }
   }
 
@@ -52,14 +56,14 @@ export class UnfollowLogEntry {
   }
 
   toObject(): {
-    user: ReturnType<User['toObject']>;
+    user: ReturnType<User["toObject"]>;
     unfollowedSuccessfully: boolean;
     timestamp: number;
   } {
     return {
       user: this._user.toObject(),
       unfollowedSuccessfully: this._unfollowedSuccessfully,
-      timestamp: this._timestamp
+      timestamp: this._timestamp,
     };
   }
 
@@ -67,7 +71,9 @@ export class UnfollowLogEntry {
     if (!(other instanceof UnfollowLogEntry)) {
       return false;
     }
-    return this._user.equals(other._user) &&
-           this._unfollowedSuccessfully === other._unfollowedSuccessfully;
+    return (
+      this._user.equals(other._user) &&
+      this._unfollowedSuccessfully === other._unfollowedSuccessfully
+    );
   }
 }

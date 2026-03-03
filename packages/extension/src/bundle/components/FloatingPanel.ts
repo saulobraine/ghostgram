@@ -1,8 +1,21 @@
 // FloatingPanel - Componente de painel flutuante com atualização incremental
 import { createElement } from '../utils/DOMRenderer.js';
-import { Logo, getIcon } from './Logo.js';
+import { Logo, getIconUrl } from './Logo.js';
+import { dbService } from '../services/DatabaseService.js';
+import { ACTION_TYPES } from '../../constants/Constants.js';
 import type { FloatingPanelProps } from './FloatingPanelProps.js';
 import type { User } from '../domain/User.js';
+
+interface ActionRecord {
+  username: string;
+  actionType: string;
+  timestamp: number;
+}
+
+interface ActionLabel {
+  text: string;
+  color: string;
+}
 
 interface PanelRefs {
   toggleButton: HTMLElement | null;
@@ -29,6 +42,7 @@ export class FloatingPanel {
   private _refs: PanelRefs;
   private _renderedUserIds: Set<string>;
   private _props: FloatingPanelProps | null;
+  private _historyModal: HTMLElement | null;
 
   constructor() {
     this.element = null;
@@ -49,6 +63,40 @@ export class FloatingPanel {
     };
     this._renderedUserIds = new Set();
     this._props = null;
+    this._historyModal = null;
+    this._injectHistoryAnimationStyles();
+  }
+
+  /**
+   * Injeta estilos de animação para o modal de histórico
+   */
+  private _injectHistoryAnimationStyles(): void {
+    if (document.getElementById('ghostgram-history-anim')) return;
+    const style = document.createElement('style');
+    style.id = 'ghostgram-history-anim';
+    style.textContent = `
+      @keyframes gg-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes gg-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+      @keyframes gg-modal-in { from { opacity: 0; transform: scale(0.92) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes gg-modal-out { from { opacity: 1; transform: scale(1) translateY(0); } to { opacity: 0; transform: scale(0.92) translateY(12px); } }
+      @keyframes gg-item-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /**
+   * Verifica se o usuário tem histórico e destaca o botão
+   */
+  private async _loadUserHistoryBadge(username: string, btn: HTMLElement): Promise<void> {
+    try {
+      const allActions: ActionRecord[] = await dbService.getAllActions();
+      const userActions = allActions.filter(a => a.username === username);
+      if (userActions.length > 0) {
+        btn.style.opacity = '1';
+      }
+    } catch {
+      // Silencia erro — botão permanece com opacidade padrão
+    }
   }
 
   /**
@@ -508,8 +556,18 @@ export class FloatingPanel {
     // Header com botão de minimizar
     const header = createElement('div', { className: 'iu-header' });
 
+    const titleH3 = createElement('h3', {}) as HTMLElement;
+    const headerIcon = document.createElement('img');
+    headerIcon.src = getIconUrl();
+    headerIcon.alt = 'GhostGram';
+    headerIcon.width = 20;
+    headerIcon.height = 20;
+    headerIcon.style.verticalAlign = 'middle';
+    headerIcon.style.marginRight = '6px';
+    titleH3.appendChild(headerIcon);
+    titleH3.appendChild(document.createTextNode('GhostGram'));
     const titleContainer = createElement('div', { className: 'iu-header-title' },
-      createElement('h3', {}, `${getIcon()} GhostGram`),
+      titleH3,
       createElement('span', { className: 'iu-subtitle' }, 'Não-seguidores')
     );
     header.appendChild(titleContainer);
@@ -719,7 +777,16 @@ export class FloatingPanel {
   private _createUnfollowProgressSection(props: FloatingPanelProps): HTMLElement {
     const section = createElement('div', { className: 'iu-progress-section' });
 
-    this._refs.progressLabel = createElement('p', { className: 'iu-progress-label' }, '👻 Unfollow em andamento...');
+    this._refs.progressLabel = createElement('p', { className: 'iu-progress-label' }) as HTMLElement;
+    const progressIcon = document.createElement('img');
+    progressIcon.src = getIconUrl();
+    progressIcon.alt = 'GhostGram';
+    progressIcon.width = 16;
+    progressIcon.height = 16;
+    progressIcon.style.verticalAlign = 'middle';
+    progressIcon.style.marginRight = '6px';
+    this._refs.progressLabel.appendChild(progressIcon);
+    this._refs.progressLabel.appendChild(document.createTextNode('Unfollow em andamento...'));
     section.appendChild(this._refs.progressLabel);
 
     const hint = createElement('p', { className: 'iu-progress-text' }, 'Veja o progresso no modal.');
@@ -945,6 +1012,39 @@ export class FloatingPanel {
     }, isWhitelisted ? '★' : '☆');
     item.appendChild(whitelistBtn);
 
+    // Botão histórico — carrega ações assincronamente e exibe se existirem
+    const historyBtn = createElement('button', {
+      className: 'iu-history-ghost-btn',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        this._showUserHistory(user.getUsername());
+      },
+      title: 'Ver histórico GhostGram'
+    });
+    const historyIcon = document.createElement('img');
+    historyIcon.src = getIconUrl();
+    historyIcon.alt = 'GhostGram';
+    historyIcon.width = 18;
+    historyIcon.height = 18;
+    historyBtn.appendChild(historyIcon);
+    (historyBtn as HTMLElement).style.cssText = `
+      background: none !important;
+      border: none !important;
+      font-size: 16px !important;
+      cursor: pointer !important;
+      padding: 2px 4px !important;
+      opacity: 0.4 !important;
+      transition: opacity 0.2s ease, transform 0.2s ease !important;
+      flex-shrink: 0 !important;
+    `;
+    historyBtn.addEventListener('mouseenter', () => { (historyBtn as HTMLElement).style.opacity = '1'; (historyBtn as HTMLElement).style.transform = 'scale(1.15)'; });
+    historyBtn.addEventListener('mouseleave', () => { (historyBtn as HTMLElement).style.opacity = '0.4'; (historyBtn as HTMLElement).style.transform = 'scale(1)'; });
+
+    // Verifica se tem histórico para destacar o botão
+    this._loadUserHistoryBadge(user.getUsername(), historyBtn as HTMLElement);
+
+    item.appendChild(historyBtn);
+
     return item;
   }
 
@@ -1038,5 +1138,176 @@ export class FloatingPanel {
     }
 
     return item;
+  }
+
+  /**
+   * Exibe modal de histórico de ações para um usuário
+   */
+  private async _showUserHistory(username: string): Promise<void> {
+    this._closeHistoryModal(false);
+
+    const allActions: ActionRecord[] = await dbService.getAllActions();
+    const actions = allActions.filter(a => a.username === username);
+    if (actions.length === 0) {
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ghostgram-modal-overlay';
+    overlay.style.cssText = `
+      position: fixed !important;
+      top: 0 !important; left: 0 !important;
+      width: 100vw !important; height: 100vh !important;
+      background: rgba(0,0,0,0.7) !important;
+      z-index: 999999 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-family: 'Noto Sans', system-ui, sans-serif !important;
+      animation: gg-overlay-in 0.25s ease-out both !important;
+    `;
+
+    const modal = document.createElement('div');
+    modal.className = 'ghostgram-modal-content';
+    modal.style.cssText = `
+      background: #111 !important;
+      border-radius: 16px !important;
+      padding: 24px !important;
+      max-width: 420px !important;
+      width: 90% !important;
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+      color: #fafafa !important;
+      border: 1px solid #27272a !important;
+      animation: gg-modal-in 0.3s ease-out both !important;
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      margin-bottom: 16px !important;
+      padding-bottom: 12px !important;
+      border-bottom: 1px solid #27272a !important;
+    `;
+    const title = document.createElement('h3');
+    const histTitleIcon = document.createElement('img');
+    histTitleIcon.src = getIconUrl();
+    histTitleIcon.alt = 'GhostGram';
+    histTitleIcon.width = 18;
+    histTitleIcon.height = 18;
+    histTitleIcon.style.verticalAlign = 'middle';
+    histTitleIcon.style.marginRight = '6px';
+    title.appendChild(histTitleIcon);
+    title.appendChild(document.createTextNode(`Histórico de @${username}`));
+    title.style.cssText = `
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      margin: 0 !important;
+      background: linear-gradient(135deg, #833ab4, #e1306c, #fcaf45) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+    `;
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+      background: none !important;
+      border: none !important;
+      color: #a1a1aa !important;
+      font-size: 18px !important;
+      cursor: pointer !important;
+      padding: 4px !important;
+    `;
+    closeBtn.addEventListener('click', () => this._closeHistoryModal(true));
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    modal.appendChild(header);
+
+    // Lista de ações
+    const list = document.createElement('div');
+    list.style.cssText = `display: flex !important; flex-direction: column !important; gap: 8px !important;`;
+
+    const actionLabels: Record<string, ActionLabel> = {
+      [ACTION_TYPES.FOLLOW]: { text: 'Seguiu', color: '#22c55e' },
+      [ACTION_TYPES.UNFOLLOW]: { text: 'Deixou de seguir', color: '#ef4444' },
+      [ACTION_TYPES.RE_FOLLOW_ACCEPTED]: { text: 'Aceitou seguir novamente', color: '#3b82f6' },
+      [ACTION_TYPES.RE_FOLLOW_REJECTED]: { text: 'Confirmou não seguir', color: '#f59e0b' }
+    };
+
+    const displayActions = actions.slice(0, 50);
+    displayActions.forEach((action, index) => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 10px 12px !important;
+        background: #1a1a1a !important;
+        border-radius: 8px !important;
+        border: 1px solid #27272a !important;
+        animation: gg-item-in 0.3s ease-out ${0.05 * index}s both !important;
+      `;
+
+      const info = actionLabels[action.actionType] || { text: action.actionType, color: '#a1a1aa' };
+      const actionSpan = document.createElement('span');
+      actionSpan.textContent = info.text;
+      actionSpan.style.cssText = `
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        color: ${info.color} !important;
+      `;
+
+      const dateSpan = document.createElement('span');
+      dateSpan.textContent = new Date(action.timestamp).toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      dateSpan.style.cssText = `font-size: 11px !important; color: #71717a !important;`;
+
+      item.appendChild(actionSpan);
+      item.appendChild(dateSpan);
+      list.appendChild(item);
+    });
+
+    if (actions.length > 50) {
+      const more = document.createElement('p');
+      more.textContent = `... e mais ${actions.length - 50} ações`;
+      more.style.cssText = `text-align: center !important; color: #71717a !important; font-size: 12px !important; margin-top: 8px !important;`;
+      list.appendChild(more);
+    }
+
+    modal.appendChild(list);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', (e: Event) => {
+      if (e.target === overlay) this._closeHistoryModal(true);
+    });
+
+    document.body.appendChild(overlay);
+    this._historyModal = overlay;
+  }
+
+  /**
+   * Fecha o modal de histórico com animação opcional
+   */
+  private _closeHistoryModal(animate: boolean = false): void {
+    if (!this._historyModal) return;
+
+    if (!animate) {
+      this._historyModal.remove();
+      this._historyModal = null;
+      return;
+    }
+
+    const overlay = this._historyModal;
+    const modal = overlay.querySelector('.ghostgram-modal-content') as HTMLElement | null;
+    (overlay as HTMLElement).style.animation = 'gg-overlay-out 0.2s ease-in forwards';
+    if (modal) modal.style.animation = 'gg-modal-out 0.2s ease-in forwards';
+
+    setTimeout(() => {
+      overlay.remove();
+      if (this._historyModal === overlay) this._historyModal = null;
+    }, 220);
   }
 }

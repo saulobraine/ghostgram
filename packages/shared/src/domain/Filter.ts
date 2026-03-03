@@ -1,5 +1,5 @@
 // Filter - Value Object (Wrap primitives)
-import type { IFilterObject } from '../types/domain.js';
+import type { IFilterObject } from "../types/domain";
 
 /**
  * Value Object que representa filtros de usuários
@@ -16,7 +16,7 @@ export class Filter {
     showFollowers: boolean,
     showVerified: boolean,
     showPrivate: boolean,
-    showWithOutProfilePicture: boolean
+    showWithOutProfilePicture: boolean,
   ) {
     this._showNonFollowers = Boolean(showNonFollowers);
     this._showFollowers = Boolean(showFollowers);
@@ -37,13 +37,15 @@ export class Filter {
     if (!obj) {
       return Filter.createDefault();
     }
-    
+
     return new Filter(
       obj.showNonFollowers !== undefined ? obj.showNonFollowers : true,
       obj.showFollowers !== undefined ? obj.showFollowers : false,
       obj.showVerified !== undefined ? obj.showVerified : true,
       obj.showPrivate !== undefined ? obj.showPrivate : true,
-      obj.showWithOutProfilePicture !== undefined ? obj.showWithOutProfilePicture : true
+      obj.showWithOutProfilePicture !== undefined
+        ? obj.showWithOutProfilePicture
+        : true,
     );
   }
 
@@ -69,11 +71,21 @@ export class Filter {
 
   update(updates: Partial<IFilterObject>): Filter {
     return new Filter(
-      updates.showNonFollowers !== undefined ? updates.showNonFollowers : this._showNonFollowers,
-      updates.showFollowers !== undefined ? updates.showFollowers : this._showFollowers,
-      updates.showVerified !== undefined ? updates.showVerified : this._showVerified,
-      updates.showPrivate !== undefined ? updates.showPrivate : this._showPrivate,
-      updates.showWithOutProfilePicture !== undefined ? updates.showWithOutProfilePicture : this._showWithOutProfilePicture
+      updates.showNonFollowers !== undefined
+        ? updates.showNonFollowers
+        : this._showNonFollowers,
+      updates.showFollowers !== undefined
+        ? updates.showFollowers
+        : this._showFollowers,
+      updates.showVerified !== undefined
+        ? updates.showVerified
+        : this._showVerified,
+      updates.showPrivate !== undefined
+        ? updates.showPrivate
+        : this._showPrivate,
+      updates.showWithOutProfilePicture !== undefined
+        ? updates.showWithOutProfilePicture
+        : this._showWithOutProfilePicture,
     );
   }
 
@@ -83,7 +95,7 @@ export class Filter {
       showFollowers: this._showFollowers,
       showVerified: this._showVerified,
       showPrivate: this._showPrivate,
-      showWithOutProfilePicture: this._showWithOutProfilePicture
+      showWithOutProfilePicture: this._showWithOutProfilePicture,
     };
   }
 
@@ -91,10 +103,12 @@ export class Filter {
     if (!(other instanceof Filter)) {
       return false;
     }
-    return this._showNonFollowers === other._showNonFollowers &&
-           this._showFollowers === other._showFollowers &&
-           this._showVerified === other._showVerified &&
-           this._showPrivate === other._showPrivate &&
-           this._showWithOutProfilePicture === other._showWithOutProfilePicture;
+    return (
+      this._showNonFollowers === other._showNonFollowers &&
+      this._showFollowers === other._showFollowers &&
+      this._showVerified === other._showVerified &&
+      this._showPrivate === other._showPrivate &&
+      this._showWithOutProfilePicture === other._showWithOutProfilePicture
+    );
   }
 }

@@ -6,8 +6,8 @@ import { UnfollowService } from './services/UnfollowService.js';
 import { UnfollowProgressModal } from './components/UnfollowProgressModal.js';
 import { StateManager } from './utils/StateManager.js';
 import { followMonitor } from './services/FollowMonitor.js';
-import { profileOverlay } from './components/ProfileOverlay.js';
-import { profileHistoryButton } from './services/ProfileHistoryButton.js';
+// profileOverlay e profileHistoryButton não são mais inicializados na página
+// O histórico de ações aparece somente no popup
 import { User } from './domain/User.js';
 import { Settings } from '../domain/Settings.js';
 import { SyncStorageAdapter } from '../storage/SyncStorageAdapter.js';
@@ -100,10 +100,9 @@ export class FloatingPanelApp {
     this._storage = new SyncStorageAdapter();
     this._localStorage = new LocalStorageAdapter();
 
-    // Inicia monitoramento de cliques manuais e sobreposição de perfil
+    // Inicia monitoramento de cliques manuais
     followMonitor.start();
-    profileOverlay.init();
-    profileHistoryButton.init();
+    // profileOverlay e profileHistoryButton removidos da página — histórico aparece somente no popup
 
     // Estado da aplicação
     this._state = {

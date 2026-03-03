@@ -1,5 +1,6 @@
 // UnfollowProgressModal - Full-screen modal for unfollow progress
 import { createElement } from '../utils/DOMRenderer.js';
+import { getIconUrl } from './Logo.js';
 
 interface UnfollowLogEntry {
   getUser(): {
@@ -81,7 +82,16 @@ export class UnfollowProgressModal {
 
     // Header
     const header = createElement('div', { className: 'iu-unfollow-modal-header' }) as HTMLElement;
-    this._refs.title = createElement('h2', {}, '👻 Deixando de seguir...') as HTMLElement;
+    this._refs.title = createElement('h2', {}) as HTMLElement;
+    const titleIcon = document.createElement('img');
+    titleIcon.src = getIconUrl();
+    titleIcon.alt = 'GhostGram';
+    titleIcon.width = 22;
+    titleIcon.height = 22;
+    titleIcon.style.verticalAlign = 'middle';
+    titleIcon.style.marginRight = '6px';
+    this._refs.title.appendChild(titleIcon);
+    this._refs.title.appendChild(document.createTextNode('Deixando de seguir...'));
     this._refs.progressPct = createElement('span', { className: 'iu-unfollow-modal-pct' }, '0%') as HTMLElement;
     header.appendChild(this._refs.title);
     header.appendChild(this._refs.progressPct);
@@ -250,7 +260,16 @@ export class UnfollowProgressModal {
     const elapsed = Math.round((Date.now() - this._startTime) / 1000);
     const elapsedText = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}min ${elapsed % 60}s`;
 
-    this._refs.title!.textContent = '👻 Concluído!';
+    this._refs.title!.innerHTML = '';
+    const doneIcon = document.createElement('img');
+    doneIcon.src = getIconUrl();
+    doneIcon.alt = 'GhostGram';
+    doneIcon.width = 22;
+    doneIcon.height = 22;
+    doneIcon.style.verticalAlign = 'middle';
+    doneIcon.style.marginRight = '6px';
+    this._refs.title!.appendChild(doneIcon);
+    this._refs.title!.appendChild(document.createTextNode('Concluído!'));
     this._refs.progressPct!.textContent = '100%';
     (this._refs.barFill as HTMLElement).style.width = '100%';
     this._refs.statusLine!.textContent = `Finalizado em ${elapsedText}`;

@@ -1,5 +1,11 @@
 import type { Config } from 'jest';
 
+const tsJestConfig = {
+  useESM: true,
+  tsconfig: 'tsconfig.test.json',
+  diagnostics: false
+};
+
 const config = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
@@ -7,28 +13,23 @@ const config = {
     '^(\\.{1,2}/.*)\\.ts$': '$1'
   },
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      useESM: true
-    }]
+    '^.+\\.ts$': ['ts-jest', tsJestConfig]
   },
   extensionsToTreatAsEsm: ['.ts'],
   testMatch: [
-    '**/tests/**/*.test.js',
     '**/tests/**/*.test.ts'
   ],
   projects: [
     {
       displayName: 'unit',
-      testMatch: ['<rootDir>/tests/unit/**/*.test.js', '<rootDir>/tests/unit/**/*.test.ts'],
+      testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
       testEnvironment: 'jsdom',
       moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1',
         '^(\\.{1,2}/.*)\\.ts$': '$1'
       },
       transform: {
-        '^.+\\.ts$': ['ts-jest', {
-          useESM: true
-        }]
+        '^.+\\.ts$': ['ts-jest', tsJestConfig]
       },
       extensionsToTreatAsEsm: ['.ts'],
       collectCoverageFrom: [
@@ -37,30 +38,28 @@ const config = {
         '!src/**/*.snapshot.test.ts'
       ],
       setupFilesAfterEnv: [
-        '<rootDir>/tests/setup/jest.setup.js'
+        '<rootDir>/tests/setup/jest.setup.ts'
       ]
     },
     {
       displayName: 'integration',
-      testMatch: ['<rootDir>/tests/integration/**/*.test.js', '<rootDir>/tests/integration/**/*.test.ts'],
+      testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
       testEnvironment: 'jsdom',
       moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1',
         '^(\\.{1,2}/.*)\\.ts$': '$1'
       },
       transform: {
-        '^.+\\.ts$': ['ts-jest', {
-          useESM: true
-        }]
+        '^.+\\.ts$': ['ts-jest', tsJestConfig]
       },
       extensionsToTreatAsEsm: ['.ts'],
       setupFilesAfterEnv: [
-        '<rootDir>/tests/setup/jest.setup.js'
+        '<rootDir>/tests/setup/jest.setup.ts'
       ]
     },
     {
       displayName: 'performance',
-      testMatch: ['<rootDir>/tests/performance/**/*.test.js', '<rootDir>/tests/performance/**/*.test.ts'],
+      testMatch: ['<rootDir>/tests/performance/**/*.test.ts'],
       testEnvironment: 'jsdom',
       testTimeout: 10000,
       moduleNameMapper: {
@@ -68,24 +67,26 @@ const config = {
         '^(\\.{1,2}/.*)\\.ts$': '$1'
       },
       transform: {
-        '^.+\\.ts$': ['ts-jest', {
-          useESM: true
-        }]
+        '^.+\\.ts$': ['ts-jest', tsJestConfig]
       },
       extensionsToTreatAsEsm: ['.ts'],
       setupFilesAfterEnv: [
-        '<rootDir>/tests/setup/jest.setup.js'
+        '<rootDir>/tests/setup/jest.setup.ts'
       ]
     },
     {
       displayName: 'e2e',
-      testMatch: ['<rootDir>/tests/e2e/**/*.test.js', '<rootDir>/tests/e2e/**/*.test.ts'],
+      testMatch: ['<rootDir>/tests/e2e/**/*.test.ts'],
       testEnvironment: 'node',
       testTimeout: 30000,
       moduleNameMapper: {
-        '^(\\.{1,2}/.*)\\.js$': '$1'
+        '^(\\.{1,2}/.*)\\.js$': '$1',
+        '^(\\.{1,2}/.*)\\.ts$': '$1'
       },
-      transform: {}
+      transform: {
+        '^.+\\.ts$': ['ts-jest', tsJestConfig]
+      },
+      extensionsToTreatAsEsm: ['.ts']
     }
   ],
   collectCoverageFrom: [
@@ -96,7 +97,7 @@ const config = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: [
-    '<rootDir>/tests/setup/jest.setup.js'
+    '<rootDir>/tests/setup/jest.setup.ts'
   ]
 };
 

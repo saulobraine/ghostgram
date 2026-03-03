@@ -25,25 +25,19 @@ export class BackgroundService {
   }
 
   /**
-   * Gera ícone 👻 via OffscreenCanvas e define na toolbar
+   * Define ícone da toolbar usando PNGs estáticos
    */
   private _setToolbarIcon(): void {
-    const sizes = [16, 32, 48, 128];
-    const imageData: Record<number, ImageData> = {};
-
     try {
-      for (const size of sizes) {
-        const canvas = new OffscreenCanvas(size, size);
-        const ctx = canvas.getContext('2d')!;
-        ctx.font = `${Math.floor(size * 0.85)}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('👻', size / 2, size / 2);
-        imageData[size] = ctx.getImageData(0, 0, size, size);
-      }
-      chrome.action.setIcon({ imageData });
+      chrome.action.setIcon({
+        path: {
+          16: 'icons/icon16.png',
+          48: 'icons/icon48.png',
+          128: 'icons/icon128.png'
+        }
+      });
     } catch (e) {
-      console.warn('GhostGram: não foi possível gerar ícone da toolbar', e);
+      console.warn('GhostGram: não foi possível definir ícone da toolbar', e);
     }
   }
 

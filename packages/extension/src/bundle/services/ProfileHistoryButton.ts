@@ -1,5 +1,6 @@
 import { dbService } from './DatabaseService.js';
 import { ACTION_TYPES } from '../../constants/Constants.js';
+import { getIconUrl } from '../components/Logo.js';
 
 interface ActionRecord {
   username: string;
@@ -131,8 +132,13 @@ export class ProfileHistoryButton {
 
     const btn = document.createElement('button');
     btn.className = 'ghostgram-history-btn';
-    btn.textContent = '👻';
     btn.title = 'Ver histórico GhostGram';
+    const btnIcon = document.createElement('img');
+    btnIcon.src = getIconUrl();
+    btnIcon.alt = 'GhostGram';
+    btnIcon.width = 18;
+    btnIcon.height = 18;
+    btn.appendChild(btnIcon);
     btn.style.cssText = `
       position: absolute !important;
       bottom: 0 !important;
@@ -204,7 +210,15 @@ export class ProfileHistoryButton {
       border-bottom: 1px solid #27272a !important;
     `;
     const title = document.createElement('h3');
-    title.textContent = `👻 Histórico de @${username}`;
+    const titleIcon = document.createElement('img');
+    titleIcon.src = getIconUrl();
+    titleIcon.alt = 'GhostGram';
+    titleIcon.width = 18;
+    titleIcon.height = 18;
+    titleIcon.style.verticalAlign = 'middle';
+    titleIcon.style.marginRight = '6px';
+    title.appendChild(titleIcon);
+    title.appendChild(document.createTextNode(`Histórico de @${username}`));
     title.style.cssText = `
       font-size: 16px !important;
       font-weight: 600 !important;
