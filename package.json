@@ -10,9 +10,26 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "dev:app": "pnpm --filter @ghostgram/app dev",
+    "dev:app:web": "pnpm --filter @ghostgram/app start --web --port 8081",
+    "dev:app:android": "pnpm --filter @ghostgram/app android",
+    "dev:app:ios": "pnpm --filter @ghostgram/app ios",
+    "dev:api": "pnpm --filter @ghostgram/api dev",
+    "dev:api:debug": "pnpm --filter @ghostgram/api start:debug",
+    "dev:api:prod": "pnpm --filter @ghostgram/api start:prod",
+    "dev:extension": "pnpm --filter @ghostgram/extension dev",
+    "build:extension": "pnpm --filter @ghostgram/extension build",
+    "dev:desktop": "concurrently -n app,desktop -c cyan,magenta \"pnpm run dev:app:web\" \"pnpm --filter @ghostgram/desktop dev\"",
+    "build:desktop": "pnpm --filter @ghostgram/desktop build",
+    "dev:fullstack": "concurrently -n api,app -c green,cyan \"pnpm run dev:api\" \"pnpm run dev:app\"",
+    "dev:all": "concurrently -n api,app,ext -c green,cyan,yellow \"pnpm run dev:api\" \"pnpm run dev:app\" \"pnpm run dev:extension\"",
+    "prisma:generate": "pnpm --filter @ghostgram/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @ghostgram/api prisma:migrate",
+    "prisma:studio": "pnpm --filter @ghostgram/api prisma:studio"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "turbo": "^2.0.0",
     "typescript": "^5.4.3"
   },

@@ -1,13 +1,25 @@
 # Dependencies
 node_modules/
 package-lock.json
+yarn.lock
 
 # Build outputs
 build/
 dist/
+.next/
+out/
+.turbo/
 extension.zip
 *.crx
 *.pem
+
+# Caches
+.cache/
+**/.cache/
+.vite/
+**/.vite/
+.expo/
+**/.expo/
 
 # Test coverage
 coverage/
@@ -29,15 +41,28 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Environment
 .env
 .env.local
+*.local
 
 # Snapshots
 **/__snapshots__/
 
+# Expo
+web-build/
+
+# Mobile
+*.apk
+*.aab
+*.ipa
+
+# TypeScript
+*.tsbuildinfo
+
+# Tools
 .cursor/
 .agent/
 .github/
-
