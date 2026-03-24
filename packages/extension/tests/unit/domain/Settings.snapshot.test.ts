@@ -15,7 +15,7 @@ describe('Settings Snapshots', () => {
   it('should match snapshot for custom settings', () => {
     const settings = new Settings(
       2000, 15000, 5000, 400000,
-      d.successMessageDuration, d.unfollowersPerPage,
+      d.successMessageDuration, d.unfollowersPerPage, d.unfollowsPerCycle,
       [...d.withoutProfilePictureUrlIds], d.instagramGraphqlQueryHash,
       d.instagramGraphqlBaseUrl, d.instagramUnfollowBaseUrl
     );

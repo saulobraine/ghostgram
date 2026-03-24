@@ -95,7 +95,7 @@ describe('Fluxo de Unfollow (Integração)', () => {
   it('deve continuar unfollow mesmo com erro em um user', async () => {
     // Primeiro sucesso, segundo erro, terceiro sucesso
     fetchMock.mockResponseOnce(createUnfollowResponse());
-    fetchMock.mockErrorResponseOnce(500, { message: 'Internal error' });
+    fetchMock.mockErrorResponseOnce(400, { message: 'Bad request' });
     fetchMock.mockResponseOnce(createUnfollowResponse());
 
     const apiClient = new InstagramApiClient();

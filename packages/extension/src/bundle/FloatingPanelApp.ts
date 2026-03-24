@@ -471,6 +471,7 @@ export class FloatingPanelApp {
    */
   private async _handleStartUnfollow(): Promise<void> {
     if (this._state.isUnfollowing || this._state.selectedUsers.size === 0) {
+      console.warn('[FloatingPanelApp] Cannot start unfollow: already unfollowing or no users selected');
       return;
     }
 
@@ -479,13 +480,30 @@ export class FloatingPanelApp {
       await this._handleCancelScan();
     }
 
+    // Filtra usuários que estão em selectedUsers E em nonFollowers
+    // Filtra usuários selecionados que não estão na whitelist
     const usersToUnfollow = this._state.nonFollowers.filter(
-      user => this._state.selectedUsers.has(user.getId())
+      user => this._state.selectedUsers.has(user.getId()) && !this._state.whitelist.has(user.getId())
     );
 
+    // Remove da seleção qualquer usuário na whitelist (proteção extra)
+    this._state.whitelist.forEach(userId => {
+      this._state.selectedUsers.delete(userId);
+    });
+
+    if (usersToUnfollow.length === 0) {
+      console.warn('[FloatingPanelApp] No users to unfollow. Selected:', this._state.selectedUsers.size,
+        'NonFollowers:', this._state.nonFollowers.length);
+      return;
+    }
+
+    console.log(`[FloatingPanelApp] Starting unfollow for ${usersToUnfollow.length} users`);
+
     this._state.isUnfollowing = true;
+    this._state.isExpanded = false;
     this._state.unfollowProgress = 0;
     this._state.unfollowLog = [];
+    document.body.style.overflow = 'hidden';
     this._update();
 
     // Create and show the modal
@@ -493,7 +511,7 @@ export class FloatingPanelApp {
       onPause: () => { if (this._unfollowService) this._unfollowService.pause(); },
       onResume: () => { if (this._unfollowService) this._unfollowService.resume(); },
       onCancel: () => this._handleCancelUnfollow(),
-      onClose: () => { this._unfollowModal = null; },
+      onClose: () => { document.body.style.overflow = ''; this._unfollowModal = null; },
       totalCount: usersToUnfollow.length,
       timeBetweenUnfollows: this._settings.getTimeBetweenUnfollows(),
       timeAfterFive: this._settings.getTimeToWaitAfterFiveUnfollows()
@@ -519,19 +537,29 @@ export class FloatingPanelApp {
 
       // Remove usuários que foram unfollowed da lista
       const unfollowedIds = new Set(log.filter(e => e.wasSuccessful()).map(e => e.getUser().getId()));
+      const removedCount = this._state.nonFollowers.filter(user => unfollowedIds.has(user.getId())).length;
       this._state.nonFollowers = this._state.nonFollowers.filter(
         user => !unfollowedIds.has(user.getId())
       );
       this._state.selectedUsers.clear();
 
-      console.log(`[FloatingPanelApp] Unfollow concluído.${unfollowedIds.size} usuários removidos.`);
+      const successCount = log.filter(e => e.wasSuccessful()).length;
+      console.log(`[FloatingPanelApp] Unfollow concluído. ${successCount}/${usersToUnfollow.length} unfollows bem-sucedidos. ${removedCount} usuários removidos da lista.`);
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no unfollow:', error);
       this._state.isUnfollowing = false;
+      // Parar o serviço explícitamente caso ainda esteja rodando
+      if (this._unfollowService) {
+        this._unfollowService.stop();
+      }
+      document.body.style.overflow = '';
       if (this._unfollowModal) {
         this._unfollowModal.destroy();
         this._unfollowModal = null;
       }
+      // Informar o usuário sobre o erro e sugerir verificar configurações se previamente alteradas
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      alert(`Não foi possível concluir o unfollow: ${errorMsg}\n\nVerifique suas configurações, especialmente o intervalo entre unfollows e o limite de ações por ciclo, se você as alterou previamente.`);
     }
 
     this._update();
@@ -545,6 +573,7 @@ export class FloatingPanelApp {
       this._unfollowService.stop();
     }
     this._state.isUnfollowing = false;
+    document.body.style.overflow = '';
     if (this._unfollowModal) {
       this._unfollowModal.destroy();
       this._unfollowModal = null;
@@ -596,16 +625,20 @@ export class FloatingPanelApp {
   /**
    * Seleciona/deseleciona todos os usuários
    */
-  private _handleToggleAll(selectAll: boolean): void {
+  private _handleToggleAll(selectAll: boolean, userIds?: string[]): void {
+    const targetIds = userIds || this._state.nonFollowers.map(u => u.getId());
+
     if (selectAll) {
-      this._state.nonFollowers.forEach(user => {
-        this._state.selectedUsers.add(user.getId());
+      targetIds.forEach(id => {
+        this._state.selectedUsers.add(id);
       });
     } else {
-      this._state.selectedUsers.clear();
+      targetIds.forEach(id => {
+        this._state.selectedUsers.delete(id);
+      });
     }
 
-    // Atualização incremental — não recria DOM
+    this._state.selectedUsers = new Set(this._state.selectedUsers);
     this._update();
   }
 
@@ -768,7 +801,7 @@ export class FloatingPanelApp {
       scanProgress: this._state.scanProgress,
       unfollowProgress: this._state.unfollowProgress,
       nonFollowers: this._state.nonFollowers,
-      selectedUsers: this._state.selectedUsers,
+      selectedUsers: new Set(this._state.selectedUsers),
       whitelist: this._state.whitelist,
       activeTab: this._state.activeTab,
       searchQuery: this._state.searchQuery,

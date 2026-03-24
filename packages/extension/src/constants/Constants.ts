@@ -80,11 +80,12 @@ export type ScanStatusType = typeof SCAN_STATUS[keyof typeof SCAN_STATUS];
 
 export const DEFAULT_SETTINGS = {
   timeBetweenSearchCycles: 1000,
-  timeToWaitAfterFiveSearchCycles: 10000,
-  timeBetweenUnfollows: 4000,
-  timeToWaitAfterFiveUnfollows: 300000,
+  timeToWaitAfterFiveSearchCycles: 20000,
+  timeBetweenUnfollows: 7000,
+  timeToWaitAfterFiveUnfollows: 600000,
   successMessageDuration: 3000,
   unfollowersPerPage: 50,
+  unfollowsPerCycle: 5,
   withoutProfilePictureUrlIds: [
     '44884218_345707102882519_2446069589734326272_n',
     '464760996_1254146839119862_3605321457742435801_n'
@@ -101,6 +102,7 @@ export const SETTINGS_KEYS = {
   TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS: 'timeToWaitAfterFiveUnfollows',
   SUCCESS_MESSAGE_DURATION: 'successMessageDuration',
   UNFOLLOWERS_PER_PAGE: 'unfollowersPerPage',
+  UNFOLLOWS_PER_CYCLE: 'unfollowsPerCycle',
   WITHOUT_PROFILE_PICTURE_URL_IDS: 'withoutProfilePictureUrlIds',
   INSTAGRAM_GRAPHQL_QUERY_HASH: 'instagramGraphqlQueryHash',
   INSTAGRAM_GRAPHQL_BASE_URL: 'instagramGraphqlBaseUrl',

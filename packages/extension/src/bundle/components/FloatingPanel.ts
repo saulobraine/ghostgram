@@ -85,18 +85,31 @@ export class FloatingPanel {
   }
 
   /**
-   * Verifica se o usuário tem histórico e destaca o botão
+   * Verifica se o usuário tem histórico e exibe o botão
    */
   private async _loadUserHistoryBadge(username: string, btn: HTMLElement): Promise<void> {
     try {
       const allActions: ActionRecord[] = await dbService.getAllActions();
       const userActions = allActions.filter(a => a.username === username);
       if (userActions.length > 0) {
-        btn.style.opacity = '1';
+        btn.style.display = 'inline-flex';
       }
     } catch {
-      // Silencia erro — botão permanece com opacidade padrão
+      // Silencia erro — botão permanece oculto
     }
+  }
+
+  /**
+   * Manipula clique no botão de histórico com feedback visual
+   */
+  private _handleHistoryClick(btn: HTMLElement, username: string): void {
+    btn.style.opacity = '1';
+    btn.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+      btn.style.opacity = '0.4';
+    }, 200);
+    this._showUserHistory(username);
   }
 
   /**
@@ -326,14 +339,17 @@ export class FloatingPanel {
   }
 
   /**
-   * Atualiza os contadores das tabs (Encontrados / Whitelist)
+   * Atualiza os contadores das tabs (Encontrados/Non-seguidores / Whitelist)
    */
   private _updateTabCounters(props: FloatingPanelProps): void {
     const section = this._refs.progressSection || this._refs.resultsSection;
     if (!section) return;
     const tabs = section.querySelectorAll('.iu-tab');
     if (tabs.length >= 2) {
-      tabs[0].textContent = `Encontrados (${props.nonFollowers.length})`;
+      // Determine the correct label for the first tab based on the section
+      const isProgressSection = !!this._refs.progressSection;
+      const firstTabLabel = isProgressSection ? 'Encontrados' : 'Não-seguidores';
+      tabs[0].textContent = `${firstTabLabel} (${props.nonFollowers.length})`;
       tabs[1].textContent = `Whitelist (${props.whitelist?.size || 0})`;
     }
   }
@@ -368,8 +384,9 @@ export class FloatingPanel {
     if (footer) {
       const selectAllBtn = footer.querySelector('.iu-button-secondary');
       if (selectAllBtn) {
-        const allSelected = props.nonFollowers.length > 0 && props.selectedUsers.size === props.nonFollowers.length;
-        selectAllBtn.textContent = allSelected ? 'Desmarcar todos' : 'Selecionar todos';
+        const filteredUsers = this._filterUsersBySearch(props.nonFollowers, props.searchQuery);
+        const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every(u => props.selectedUsers.has(u.getId()));
+        selectAllBtn.textContent = allFilteredSelected ? 'Desmarcar todos' : 'Selecionar todos';
       }
     }
   }
@@ -818,7 +835,7 @@ export class FloatingPanel {
     const tabNonFollowers = createElement('button', {
       className: `iu-tab ${props.activeTab !== 'whitelist' ? 'iu-tab-active' : ''}`,
       onClick: () => props.onChangeTab('nonFollowers')
-    }, `Não-seguidores (${props.nonFollowers.length})`);
+    }, `Encontrados (${props.nonFollowers.length})`);
     tabs.appendChild(tabNonFollowers);
 
     const whitelistCount = props.whitelist?.size || 0;
@@ -893,11 +910,12 @@ export class FloatingPanel {
     const footer = createElement('div', { className: 'iu-footer' });
 
     // Botão selecionar todos
-    const allSelected = filteredUsers.length > 0 && props.selectedUsers.size === filteredUsers.length;
+    const filteredUserIds = filteredUsers.map(u => u.getId());
+    const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every(u => props.selectedUsers.has(u.getId()));
     const selectAllBtn = createElement('button', {
       className: 'iu-button iu-button-secondary',
-      onClick: () => props.onToggleAll(!allSelected)
-    }, allSelected ? 'Desmarcar todos' : 'Selecionar todos');
+      onClick: () => props.onToggleAll(!allFilteredSelected, filteredUserIds)
+    }, allFilteredSelected ? 'Desmarcar todos' : 'Selecionar todos');
     footer.appendChild(selectAllBtn);
 
     // Botão de unfollow
@@ -1012,12 +1030,12 @@ export class FloatingPanel {
     }, isWhitelisted ? '★' : '☆');
     item.appendChild(whitelistBtn);
 
-    // Botão histórico — carrega ações assincronamente e exibe se existirem
+    // Botão histórico — só exibe se o usuário tiver histórico
     const historyBtn = createElement('button', {
       className: 'iu-history-ghost-btn',
       onClick: (e: Event) => {
         e.stopPropagation();
-        this._showUserHistory(user.getUsername());
+        this._handleHistoryClick(historyBtn as HTMLElement, user.getUsername());
       },
       title: 'Ver histórico GhostGram'
     });
@@ -1028,6 +1046,7 @@ export class FloatingPanel {
     historyIcon.height = 18;
     historyBtn.appendChild(historyIcon);
     (historyBtn as HTMLElement).style.cssText = `
+      display: none !important;
       background: none !important;
       border: none !important;
       font-size: 16px !important;
@@ -1040,7 +1059,7 @@ export class FloatingPanel {
     historyBtn.addEventListener('mouseenter', () => { (historyBtn as HTMLElement).style.opacity = '1'; (historyBtn as HTMLElement).style.transform = 'scale(1.15)'; });
     historyBtn.addEventListener('mouseleave', () => { (historyBtn as HTMLElement).style.opacity = '0.4'; (historyBtn as HTMLElement).style.transform = 'scale(1)'; });
 
-    // Verifica se tem histórico para destacar o botão
+    // Verifica se tem histórico para mostrar o botão
     this._loadUserHistoryBadge(user.getUsername(), historyBtn as HTMLElement);
 
     item.appendChild(historyBtn);
