@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../src/services/ApiClient';
 
 export default function AuthScreen() {
@@ -23,9 +22,7 @@ export default function AuthScreen() {
         ? await apiClient.login({ email, password })
         : await apiClient.register({ email, password });
 
-      await SecureStore.setItemAsync('ghostgram_token', response.accessToken);
-      await SecureStore.setItemAsync('ghostgram_refresh_token', response.refreshToken);
-      
+      await apiClient.setSession(response);
       router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert('Erro', error.message || 'Falha na autenticação');

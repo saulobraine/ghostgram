@@ -34,7 +34,7 @@ export default function SettingsScreen() {
           text: 'Sair',
           style: 'destructive',
           onPress: async () => {
-            await apiClient.logout();
+            await apiClient.clearSession();
             router.replace('/auth');
           },
         },

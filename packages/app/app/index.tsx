@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { apiClient } from '../src/services/ApiClient';
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -12,14 +12,15 @@ export default function IndexScreen() {
 
   async function checkAuth() {
     try {
-      const token = await SecureStore.getItemAsync('ghostgram_token');
-      
-      if (token) {
+      const hasSession = await apiClient.restoreSession();
+
+      if (hasSession) {
         router.replace('/(tabs)/home');
-      } else {
-        router.replace('/auth');
+        return;
       }
-    } catch (error) {
+
+      router.replace('/auth');
+    } catch {
       router.replace('/auth');
     }
   }
