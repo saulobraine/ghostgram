@@ -15,8 +15,9 @@ GhostGram is an Instagram unfollowers tracker — a **pnpm + Turborepo monorepo*
 pnpm install                # Install all dependencies (requires pnpm 9+, Node 20+)
 pnpm run build              # Build all packages
 pnpm run test               # Test all packages
-pnpm run lint               # Lint all packages
+pnnpm run lint               # Lint all packages
 pnpm run type-check         # TypeScript check all packages
+pnpm run clean              # Clean build artifacts + node_modules
 
 # Development servers
 pnpm run dev:extension      # Vite dev (load dist/ as unpacked extension in Chrome)
@@ -52,17 +53,35 @@ docker-compose up postgres  # PostgreSQL 16 on port 5432
 # Production builds
 cd packages/extension && pnpm run build:minified   # Minified build + zip
 cd packages/api && pnpm run build                  # NestJS build
+cd packages/app && eas build --platform ios        # EAS build iOS
+cd packages/app && eas build --platform android    # EAS build Android
 ```
 
 ## Architecture
 
 ```
 Extension (Chrome MV3) ──► API (NestJS) ◄── App (Expo/React Native)
-                                │
+                                │                    ▲
                     Supabase (Auth + PostgreSQL) + Stripe
+                                                     │
+                                        Desktop (Electron wrapper)
 ```
 
-### Extension — Five Isolated Contexts
+### Shared Package (`@ghostgram/shared`)
+
+Pure TypeScript — zero runtime dependencies. Subpath exports:
+
+| Subpath | Contents |
+|---------|----------|
+| `@ghostgram/shared` | Barrel index |
+| `@ghostgram/shared/types` | Domain types and interfaces |
+| `@ghostgram/shared/constants` | Shared constants |
+| `@ghostgram/shared/domain` | Value Objects (User, Filter, UnfollowLogEntry, Whitelist) |
+| `@ghostgram/shared/dto` | Data Transfer Objects |
+| `@ghostgram/shared/i18n` | Translations (pt-BR, en) |
+| `@ghostgram/shared/utils` | Validators and helpers |
+
+### Extension — Five Isolated Contexts (`packages/extension`)
 
 The extension runs across five contexts communicating via `chrome.runtime` messaging and `window.postMessage`:
 
@@ -72,21 +91,57 @@ The extension runs across five contexts communicating via `chrome.runtime` messa
 4. **Popup** (`src/popup/`) — Quick toggle and status display.
 5. **Options Page** (`src/options/`) — Settings configuration.
 
-**Dual JS/TS files**: The extension has both `.ts` and `.js` versions. TypeScript compiles via Vite, but `.js` files in `src/bundle/` are loaded at runtime via `chrome.runtime.getURL()` in the page context.
+**Compilation model**: TypeScript compiles via Vite (`@crxjs/vite-plugin`). The bundle in `src/bundle/` is loaded at runtime via `chrome.runtime.getURL()` in the page context. Build output goes to `build/`.
 
-### Extension Dependency Hierarchy
-
+**Extension Dependency Hierarchy**:
 ```
 domain/ (no deps) → services/ (domain/utils/constants) → components/ (domain/services/utils) → storage/ (independent)
 ```
 
-### API Structure
+### API Structure (`packages/api`)
 
-NestJS 10 with Prisma ORM and Supabase PostgreSQL. Modules: `auth/` (Passport JWT), `billing/` (Stripe), `users/`, `scans/`, `history/`, `whitelist/`. Common infrastructure in `common/` (decorators, filters, guards, interceptors, Prisma service).
+NestJS 10 with Prisma ORM and Supabase PostgreSQL.
 
-### Shared Package (`@ghostgram/shared`)
+| Module | Purpose |
+|--------|---------|
+| `auth/` | Passport JWT authentication, refresh tokens |
+| `billing/` | Stripe subscription management |
+| `users/` | User CRUD and profile |
+| `scans/` | Scan history and results |
+| `history/` | Action history tracking |
+| `whitelist/` | Whitelist entry CRUD and sync |
+| `common/` | Decorators, filters, guards, interceptors, Prisma service |
 
-Pure TypeScript — types, constants, domain value objects (User, Filter, UnfollowLogEntry, Whitelist), DTOs, i18n (pt-BR, en), and validators. Zero runtime dependencies.
+**Database Schema** (Prisma):
+```
+User (id, email, displayName, locale, plan: FREE|PREMIUM)
+  └── InstagramAccount (id, igUsername, igUserId)
+        ├── Scan (id, totalFollowing, nonFollowers, resultData: json)
+        ├── ActionHistory (id, actionType, targetUsername, timestamp)
+        └── WhitelistEntry (id, igUsername)
+Subscription (id, userId, stripeCustomerId, plan, status: ACTIVE|CANCELLED|EXPIRED|PAST_DUE)
+```
+
+**Environment variables** (`packages/api/.env`): `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_*_KEY`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PREMIUM_PRICE_ID`, `THROTTLE_TTL`, `THROTTLE_LIMIT`, `PORT`, `NODE_ENV`, `FRONTEND_URL`.
+
+### Mobile App (`packages/app`)
+
+Expo ~54.0.0 / React Native ~0.81.0 / React 19.1.0 with expo-router v6 (file-based routing).
+
+- Uses `WebView` for Instagram login flow with login detection
+- `expo-secure-store` for token persistence
+- `react-native-webview` for embedded Instagram auth
+- `react-native-web` for web support
+- Depends on `@ghostgram/shared` for domain types and DTOs
+
+### Desktop (`packages/desktop`)
+
+Electron 33 wrapper around the Expo web build.
+
+- Depends on `../app/dist/` (must build app first)
+- Single entry point: `src/main.ts`
+- Build targets: NSIS (Windows), DMG (macOS), AppImage (Linux)
+- TypeScript compiles to `out/`
 
 ## Key Conventions
 
@@ -152,3 +207,48 @@ Example: `feat(scan): adiciona persistência de estado`
 - No `eval()` or dynamic `Function()` — CSP violation
 - Validate message origins for `window.postMessage`
 - Rate limit Instagram API calls with random delays and strategic pauses
+
+## Regras do Projeto — Resumo
+
+Abaixo estão regras consolidadas dos arquivos `.cursor/rules/` que complementam as convenções acima.
+
+### SOLID e Object Calisthenics
+
+**SRP**: Cada classe uma única responsabilidade. Ex: `ScanService` só escaneia, `UnfollowService` só faz unfollow.
+
+**OCP**: `StorageAdapter` abstrato permite `LocalStorageAdapter` e `SyncStorageAdapter` sem modificar a base.
+
+**DIP**: Injetar dependências no construtor ao invés de instanciar internamente.
+
+**Object Calisthenics principais**:
+- Um nível de indentação por método (extrair lógica para métodos privados)
+- Não usar `else` (usar early returns/guard clauses)
+- Uma operação de coleção por linha
+- Sem abreviações em variáveis (`user` não `u`, `isScanning` não `scan`)
+- Classes com no máximo 200-300 linhas
+
+### Evitar Overengineering
+
+Não criar interfaces, factories, builders ou padrões complexos sem necessidade comprovada. Soluções diretas sempre preferíveis. Adicionar complexidade apenas quando resolve problema real, não hipotético.
+
+### Separation of Concerns
+
+Hierarquia de dependências — camadas superiores dependem de inferiores, nunca o contrário:
+1. **Domain**: Value Objects puros, sem dependências externas
+2. **Services**: Lógica de negócio, orquestração
+3. **Storage**: Persistência, adapters
+4. **Components**: Renderização UI
+5. **Utils**: Funções auxiliares reutilizáveis
+
+### Segurança (API)
+
+- JWT com refresh tokens
+- Supabase Auth para gerenciamento de usuários
+- Stripe para billing com webhooks
+- Throttle configurável (`THROTTLE_TTL`, `THROTTLE_LIMIT`)
+
+### i18n
+
+- Traduções em `@ghostgram/shared/i18n` (pt-BR e en)
+- UI strings devem usar o sistema de i18n, nunca strings hardcoded
+- Configuração de locale no modelo `User` (`locale: string`)

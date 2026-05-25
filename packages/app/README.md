@@ -126,10 +126,17 @@ eas submit --platform android
 
 Create `.env`:
 ```
-API_URL=http://localhost:3001/api/v1
+EXPO_PUBLIC_API_URL=http://127.0.0.1:3001/api/v1
 ```
 
 For production, update to deployed API URL.
+
+Use the correct host for your target:
+- iOS simulator: `http://127.0.0.1:3001/api/v1`
+- Android emulator: `http://10.0.2.2:3001/api/v1`
+- Physical device: `http://SEU_IP_NA_REDE:3001/api/v1`
+
+Do not use `localhost` on a physical device.
 
 ## Project Structure
 

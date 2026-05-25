@@ -181,8 +181,10 @@ SUPABASE_URL=...
 
 ### Mobile App (.env)
 ```env
-API_URL=http://localhost:3001/api/v1
+EXPO_PUBLIC_API_URL=http://127.0.0.1:3001/api/v1
 ```
+
+Use `10.0.2.2` on Android emulator and your machine IP on a physical device.
 
 ## 📝 Scripts
 
