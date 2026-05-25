@@ -1,20 +1,22 @@
 import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDTO, LoginDTO } from '@ghostgram/shared';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RegisterDto } from './dto/RegisterDto';
+import { LoginDto } from './dto/LoginDto';
+import { RefreshTokenDto } from './dto/RefreshTokenDto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() registerDto: RegisterDTO) {
+  async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDTO) {
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
@@ -25,7 +27,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refresh(refreshToken);
+  async refresh(@Body() refreshDto: RefreshTokenDto) {
+    return this.authService.refresh(refreshDto.refreshToken);
   }
 }

@@ -18,6 +18,10 @@ export interface LoginDTO {
   password: string;
 }
 
+export interface RefreshTokenDTO {
+  refreshToken: string;
+}
+
 export interface AuthResponseDTO {
   accessToken: string;
   refreshToken: string;
@@ -126,8 +130,6 @@ export interface SyncWhitelistDTO {
 // Billing DTOs
 export interface CreateCheckoutDTO {
   plan: Plan;
-  successUrl: string;
-  cancelUrl: string;
 }
 
 export interface CheckoutResponseDTO {

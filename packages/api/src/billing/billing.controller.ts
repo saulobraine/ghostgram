@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Headers, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { CreateCheckoutDTO } from '@ghostgram/shared';
+import { CreateCheckoutDto } from './dto/CreateCheckoutDto';
 
 @Controller('billing')
 export class BillingController {
@@ -11,7 +12,7 @@ export class BillingController {
 
   @Post('checkout')
   @UseGuards(JwtAuthGuard)
-  async createCheckout(@CurrentUser() user: any, @Body() dto: CreateCheckoutDTO) {
+  async createCheckout(@CurrentUser() user: any, @Body() dto: CreateCheckoutDto) {
     return this.billingService.createCheckoutSession(user.id, dto);
   }
 
@@ -28,6 +29,7 @@ export class BillingController {
   }
 
   @Post('webhooks')
+  @SkipThrottle()
   async handleWebhook(
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>

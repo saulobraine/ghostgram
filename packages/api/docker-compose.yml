@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  ghostgram-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://ghostgram:password@postgres:5432/ghostgram
+      - SUPABASE_URL=http://localhost:54321
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZGlyZWN0VG8iOiJkZW1vLmV4YW1wbGUuY29tIiwicm9sZSI6ImFub24ifQ.fakekey
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+      - STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./logs:/app/logs
+      - ./prisma:/app/prisma
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ghostgram-network
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=ghostgram
+      - POSTGRES_USER=ghostgram
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/schema.prisma:/docker-entrypoint-initdb.d/schema.prisma
+    networks:
+      - ghostgram-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghostgram -d ghostgram"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - ghostgram-network
+
+  prisma-studio:
+    image: prismagraphql/prisma:2.28.2
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=postgresql://ghostgram:password@postgres:5432/ghostgram
+    depends_on:
+      - postgres
+    networks:
+      - ghostgram-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ghostgram-network:
+    driver: bridge

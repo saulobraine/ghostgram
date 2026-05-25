@@ -3,20 +3,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true
+  });
 
-  // Enable CORS for extension and app
   app.enableCors({
     origin: [
       'chrome-extension://*',
       'http://localhost:3000',
-      'http://localhost:19006', // Expo dev server
+      'http://localhost:19006',
       process.env.FRONTEND_URL
     ].filter(Boolean),
     credentials: true
   });
 
-  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,7 +25,6 @@ async function bootstrap() {
     })
   );
 
-  // Global prefix
   app.setGlobalPrefix('api/v1');
 
   const port = process.env.PORT || 3001;

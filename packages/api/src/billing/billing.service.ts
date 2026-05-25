@@ -2,7 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
 import Stripe from 'stripe';
-import { CreateCheckoutDTO, CheckoutResponseDTO, SubscriptionDTO } from '@ghostgram/shared';
+import { CheckoutResponseDTO, SubscriptionDTO, Plan, SubscriptionStatus } from '@ghostgram/shared';
+import { CreateCheckoutDto } from './dto/CreateCheckoutDto';
 
 @Injectable()
 export class BillingService {
@@ -17,7 +18,7 @@ export class BillingService {
     });
   }
 
-  async createCheckoutSession(userId: string, dto: CreateCheckoutDTO): Promise<CheckoutResponseDTO> {
+  async createCheckoutSession(userId: string, dto: CreateCheckoutDto): Promise<CheckoutResponseDTO> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId }
     });
@@ -26,7 +27,6 @@ export class BillingService {
       throw new NotFoundException('User not found');
     }
 
-    // Get or create Stripe customer
     let customerId: string;
     const existingSub = await this.prisma.subscription.findUnique({
       where: { userId }
@@ -42,20 +42,19 @@ export class BillingService {
       customerId = customer.id;
     }
 
-    // Create checkout session
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
         {
-          price: this.config.get('STRIPE_PREMIUM_PRICE_ID'),
+          price: this.getPriceIdForPlan(dto.plan),
           quantity: 1
         }
       ],
-      success_url: dto.successUrl,
-      cancel_url: dto.cancelUrl,
-      metadata: { userId }
+      success_url: this.buildFrontendUrl('/billing/success'),
+      cancel_url: this.buildFrontendUrl('/billing/cancel'),
+      metadata: { userId, plan: dto.plan }
     });
 
     return {
@@ -75,7 +74,7 @@ export class BillingService {
 
     const session = await this.stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
-      return_url: this.config.get('FRONTEND_URL')
+      return_url: this.buildFrontendUrl('/settings/billing')
     });
 
     return { portalUrl: session.url };
@@ -94,9 +93,9 @@ export class BillingService {
       id: subscription.id,
       userId: subscription.userId,
       stripeCustomerId: subscription.stripeCustomerId,
-      stripeSubId: subscription.stripeSubId,
-      plan: subscription.plan,
-      status: subscription.status,
+      stripeSubId: subscription.stripeSubId ?? undefined,
+      plan: this.mapPlan(subscription.plan),
+      status: this.mapSubscriptionStatus(subscription.status),
       expiresAt: subscription.expiresAt?.toISOString(),
       createdAt: subscription.createdAt.toISOString()
     };
@@ -109,19 +108,24 @@ export class BillingService {
     switch (event.type) {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
+        return;
       case 'customer.subscription.updated':
         await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-        break;
+        return;
       case 'customer.subscription.deleted':
         await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
+        return;
+      default:
+        return;
     }
   }
 
   private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-    const userId = session.metadata.userId;
-    
+    const userId = session.metadata?.userId;
+    if (!userId) {
+      return;
+    }
+
     await this.prisma.subscription.upsert({
       where: { userId },
       create: {
@@ -149,19 +153,25 @@ export class BillingService {
       where: { stripeSubId: subscription.id }
     });
 
-    if (sub) {
-      const status = subscription.status === 'active' ? 'ACTIVE' : 
-                     subscription.status === 'canceled' ? 'CANCELLED' :
-                     subscription.status === 'past_due' ? 'PAST_DUE' : 'EXPIRED';
-
-      await this.prisma.subscription.update({
-        where: { id: sub.id },
-        data: { 
-          status,
-          expiresAt: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null
-        }
-      });
+    if (!sub) {
+      return;
     }
+
+    const status = subscription.status === 'active'
+      ? 'ACTIVE'
+      : subscription.status === 'canceled'
+        ? 'CANCELLED'
+        : subscription.status === 'past_due'
+          ? 'PAST_DUE'
+          : 'EXPIRED';
+
+    await this.prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status,
+        expiresAt: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null
+      }
+    });
   }
 
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -169,16 +179,51 @@ export class BillingService {
       where: { stripeSubId: subscription.id }
     });
 
-    if (sub) {
-      await this.prisma.subscription.update({
-        where: { id: sub.id },
-        data: { status: 'EXPIRED' }
-      });
-
-      await this.prisma.user.update({
-        where: { id: sub.userId },
-        data: { plan: 'FREE' }
-      });
+    if (!sub) {
+      return;
     }
+
+    await this.prisma.subscription.update({
+      where: { id: sub.id },
+      data: { status: 'EXPIRED' }
+    });
+
+    await this.prisma.user.update({
+      where: { id: sub.userId },
+      data: { plan: 'FREE' }
+    });
+  }
+
+  private getPriceIdForPlan(plan: Plan): string {
+    if (plan === Plan.PREMIUM) {
+      return this.config.get('STRIPE_PREMIUM_PRICE_ID');
+    }
+
+    throw new NotFoundException('Unsupported plan');
+  }
+
+  private buildFrontendUrl(pathname: string): string {
+    const frontendUrl = this.config.get('FRONTEND_URL');
+    return new URL(pathname, frontendUrl).toString();
+  }
+
+  private mapPlan(plan: string): Plan {
+    return plan === Plan.PREMIUM ? Plan.PREMIUM : Plan.FREE;
+  }
+
+  private mapSubscriptionStatus(status: string): SubscriptionStatus {
+    if (status === SubscriptionStatus.CANCELLED) {
+      return SubscriptionStatus.CANCELLED;
+    }
+
+    if (status === SubscriptionStatus.EXPIRED) {
+      return SubscriptionStatus.EXPIRED;
+    }
+
+    if (status === SubscriptionStatus.PAST_DUE) {
+      return SubscriptionStatus.PAST_DUE;
+    }
+
+    return SubscriptionStatus.ACTIVE;
   }
 }

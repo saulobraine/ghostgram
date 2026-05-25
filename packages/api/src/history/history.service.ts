@@ -66,7 +66,9 @@ export class HistoryService {
       actionType: action.actionType as any,
       targetUsername: action.targetUsername,
       source: action.source,
-      metadata: action.metadata,
+      metadata: action.metadata && typeof action.metadata === 'object' && !Array.isArray(action.metadata)
+        ? (action.metadata as Record<string, any>)
+        : undefined,
       timestamp: action.timestamp.toISOString()
     }));
   }

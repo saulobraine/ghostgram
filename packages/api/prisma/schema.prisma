@@ -11,16 +11,18 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  displayName String?
-  locale      String   @default("pt-BR")
-  plan        Plan     @default(FREE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?
+  displayName  String?
+  locale       String   @default("pt-BR")
+  plan         Plan     @default(FREE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   instagramAccounts InstagramAccount[]
+  authSessions      AuthSession[]
   subscription      Subscription?
 
   @@map("users")
@@ -102,6 +104,23 @@ model Subscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
+}
+
+model AuthSession {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @default(now())
+  revokedAt        DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 enum Plan {
