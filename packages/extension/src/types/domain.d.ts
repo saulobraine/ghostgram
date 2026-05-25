@@ -32,6 +32,7 @@ export interface ISettingsObject {
   timeToWaitAfterFiveUnfollows?: number;
   successMessageDuration?: number;
   unfollowersPerPage?: number;
+  unfollowsPerCycle?: number;
   withoutProfilePictureUrlIds?: string[];
   instagramGraphqlQueryHash?: string;
   instagramGraphqlBaseUrl?: string;

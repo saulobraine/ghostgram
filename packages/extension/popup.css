@@ -333,6 +333,29 @@ body {
   font-size: 16px;
 }
 
+.popup-actions__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #a1a1aa;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.popup-actions__link:hover {
+  color: #e1306c;
+  background: rgba(225, 48, 108, 0.1);
+}
+
+.popup-actions__link-icon {
+  font-size: 14px;
+}
+
 /* Toast feedback */
 @keyframes popup-toast-in {
   from { opacity: 0; transform: translateY(4px); }

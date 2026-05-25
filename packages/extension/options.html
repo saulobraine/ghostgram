@@ -4,316 +4,225 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GhostGram - Configurações</title>
-    <link rel="icon" href="icons/icon48.png" type="image/png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
-    <style>
-      :root {
-        --bg-primary: #0a0a0a;
-        --bg-card: #111113;
-        --bg-elevated: #18181b;
-        --border-subtle: #27272a;
-        --border-muted: #1e1e21;
-        --text-primary: #fafafa;
-        --text-secondary: #a1a1aa;
-        --text-muted: #71717a;
-        --accent-cyan: #00ffff;
-        --accent-red: #ef4444;
-        --accent-amber: #f59e0b;
-        --accent-green: #22c55e;
-        --radius: 8px;
-        --radius-lg: 12px;
-      }
-
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-
-      body {
-        font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
-        background: var(--bg-primary);
-        color: var(--text-primary);
-        padding: 24px;
-        min-height: 100vh;
-      }
-
-      .container {
-        max-width: 720px;
-        margin: 0 auto;
-      }
-
-      /* Animações */
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* Header */
-      .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        animation: fadeInUp 0.4s ease-out both;
-      }
-      .page-header h1 {
-        font-size: 22px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .page-header h1 .emoji { font-size: 26px; }
-
-      /* Warning */
-      .warning-card {
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        border-radius: var(--radius-lg);
-        padding: 14px 18px;
-        margin-bottom: 24px;
-        font-size: 13px;
-        color: var(--accent-amber);
-        line-height: 1.6;
-        animation: fadeInUp 0.4s ease-out 0.05s both;
-      }
-      .warning-card strong { color: var(--accent-red); }
-
-      /* Section */
-      .section {
-        background: var(--bg-card);
-        border: 1px solid var(--border-muted);
-        border-radius: var(--radius-lg);
-        padding: 20px;
-        margin-bottom: 16px;
-        animation: fadeInUp 0.4s ease-out both;
-      }
-      .section:nth-child(3) { animation-delay: 0.1s; }
-      .section:nth-child(4) { animation-delay: 0.15s; }
-      .section:nth-child(5) { animation-delay: 0.2s; }
-      .section:nth-child(6) { animation-delay: 0.25s; }
-      .section:nth-child(7) { animation-delay: 0.3s; }
-
-      .section-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--accent-cyan);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 16px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--border-muted);
-      }
-
-      /* Form */
-      .form-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-      .form-row:last-child { margin-bottom: 0; }
-
-      .form-label {
-        font-size: 13px;
-        color: var(--text-secondary);
-        flex: 1;
-      }
-
-      .form-input {
-        width: 120px;
-        padding: 7px 10px;
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius);
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-        font-family: inherit;
-        font-size: 13px;
-        outline: none;
-        transition: border-color 0.15s ease;
-      }
-      .form-input:focus { border-color: var(--accent-cyan); }
-      .form-input--wide { width: 100%; max-width: 320px; }
-
-      .form-unit {
-        font-size: 11px;
-        color: var(--text-muted);
-        min-width: 32px;
-      }
-
-      /* Buttons */
-      .btn-container {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 24px;
-        animation: fadeInUp 0.4s ease-out 0.35s both;
-      }
-      .btn {
-        padding: 9px 20px;
-        border-radius: var(--radius);
-        border: 1px solid var(--border-subtle);
-        background: var(--bg-elevated);
-        color: var(--text-secondary);
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .btn:hover {
-        background: #27272a;
-        color: var(--text-primary);
-      }
-      .btn-primary {
-        background: var(--accent-cyan);
-        color: #000;
-        border-color: var(--accent-cyan);
-        font-weight: 600;
-      }
-      .btn-primary:hover {
-        background: #33ffff;
-        border-color: #33ffff;
-      }
-
-      /* Success */
-      .success-msg {
-        display: none;
-        text-align: center;
-        padding: 10px 16px;
-        background: rgba(34, 197, 94, 0.1);
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        border-radius: var(--radius);
-        color: var(--accent-green);
-        font-size: 13px;
-        font-weight: 500;
-        margin-top: 12px;
-        animation: fadeInUp 0.3s ease-out both;
-      }
-      .success-msg.show { display: block; }
-
-      @media (max-width: 600px) {
-        body { padding: 16px; }
-        .form-row { flex-direction: column; align-items: flex-start; }
-        .form-input { width: 100%; }
-        .form-input--wide { max-width: 100%; }
-      }
-    </style>
+    <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <div class="container">
-      <div class="page-header">
-        <h1><img src="icons/icon48.png" alt="GhostGram" width="26" height="26" style="vertical-align: middle;" /> Configurações</h1>
-      </div>
-
-      <div class="warning-card">
-        <strong>⚠️ ATENÇÃO:</strong> Modificar estas configurações pode levar ao banimento da sua conta.
-        <strong>USE POR SUA CONTA E RISCO!</strong>
-      </div>
-
-      <form id="settingsForm">
-        <div class="section">
-          <div class="section-title">Ciclo de Busca</div>
-
-          <div class="form-row">
-            <label class="form-label" for="timeBetweenSearchCycles">Tempo entre ciclos de busca</label>
-            <input type="number" class="form-input" id="timeBetweenSearchCycles" name="timeBetweenSearchCycles" min="500" max="999999" required />
-            <span class="form-unit">(ms)</span>
-          </div>
-
-          <div class="form-row">
-            <label class="form-label" for="timeToWaitAfterFiveSearchCycles">Tempo de espera após 5 ciclos</label>
-            <input type="number" class="form-input" id="timeToWaitAfterFiveSearchCycles" name="timeToWaitAfterFiveSearchCycles" min="4000" max="999999" required />
-            <span class="form-unit">(ms)</span>
+    <div class="options-wrapper">
+      <!-- Header -->
+      <header class="options-header">
+        <div class="options-header__logo">
+          <img src="icons/icon48.png" alt="GhostGram" width="32" height="32" class="options-header__icon" />
+          <div class="options-header__text">
+            <h1 class="options-header__title">GhostGram</h1>
+            <span class="options-header__subtitle">Configurações da Extensão</span>
           </div>
         </div>
-
-        <div class="section">
-          <div class="section-title">Unfollow</div>
-
-          <div class="form-row">
-            <label class="form-label" for="timeBetweenUnfollows">Tempo entre unfollows</label>
-            <input type="number" class="form-input" id="timeBetweenUnfollows" name="timeBetweenUnfollows" min="1000" max="999999" required />
-            <span class="form-unit">(ms)</span>
-          </div>
-
-          <div class="form-row">
-            <label class="form-label" for="timeToWaitAfterFiveUnfollows">Tempo de espera após 5 unfollows</label>
-            <input type="number" class="form-input" id="timeToWaitAfterFiveUnfollows" name="timeToWaitAfterFiveUnfollows" min="70000" max="999999" required />
-            <span class="form-unit">(ms)</span>
-          </div>
+        <div class="options-header__actions">
+          <button id="resetBtn" class="options-btn options-btn--ghost">
+            <span class="options-btn__icon">↺</span>
+            Restaurar Padrões
+          </button>
         </div>
+      </header>
 
-        <div class="section">
-          <div class="section-title">Scraping & Escopo</div>
+      <!-- Main Content -->
+      <main class="options-main">
+        <form id="settingsForm" class="options-form">
+          <!-- Busca Section -->
+          <section class="options-card">
+            <div class="options-card__header">
+              <div class="options-card__icon">🔍</div>
+              <div class="options-card__title-group">
+                <h2 class="options-card__title">Busca (Scraping)</h2>
+                <p class="options-card__description">Configure como a extensão busca não-seguidores</p>
+              </div>
+            </div>
+            <div class="options-card__body">
+              <div class="options-field">
+                <label class="options-field__label" for="timeBetweenSearchCycles">
+                  Tempo entre ciclos de busca
+                  <span class="options-field__hint">Pausa entre cada requisição à API</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="timeBetweenSearchCycles" name="timeBetweenSearchCycles" required />
+                  <span class="options-field__unit">ms</span>
+                </div>
+              </div>
 
-          <div class="form-row">
-            <label class="form-label" for="unfollowersPerPage">Não-seguidores por página</label>
-            <input type="number" class="form-input" id="unfollowersPerPage" name="unfollowersPerPage" min="10" max="500" required />
-            <span class="form-unit">(usuários)</span>
+              <div class="options-field">
+                <label class="options-field__label" for="timeToWaitAfterFiveSearchCycles">
+                  Pausa após 5 ciclos de busca
+                  <span class="options-field__hint">Evita bloqueio por rate limit</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="timeToWaitAfterFiveSearchCycles" name="timeToWaitAfterFiveSearchCycles" required />
+                  <span class="options-field__unit">ms</span>
+                </div>
+              </div>
+
+              <div class="options-field">
+                <label class="options-field__label" for="unfollowersPerPage">
+                  Usuários por página
+                  <span class="options-field__hint">Quantidade de resultados por requisição</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="unfollowersPerPage" name="unfollowersPerPage" required />
+                  <span class="options-field__unit">usuários</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Unfollow Section -->
+          <section class="options-card">
+            <div class="options-card__header">
+              <div class="options-card__icon">👋</div>
+              <div class="options-card__title-group">
+                <h2 class="options-card__title">Unfollow</h2>
+                <p class="options-card__description">Controle o processo de deixar de seguir</p>
+              </div>
+            </div>
+            <div class="options-card__body">
+              <div class="options-field">
+                <label class="options-field__label" for="unfollowsPerCycle">
+                  Unfollows por ciclo
+                  <span class="options-field__hint">Quantidade de unfollows antes de pausar</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="unfollowsPerCycle" name="unfollowsPerCycle" required />
+                  <span class="options-field__unit">usuários</span>
+                </div>
+              </div>
+
+              <div class="options-field">
+                <label class="options-field__label" for="timeBetweenUnfollows">
+                  Tempo entre unfollows
+                  <span class="options-field__hint">Pausa entre cada unfollow</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="timeBetweenUnfollows" name="timeBetweenUnfollows" required />
+                  <span class="options-field__unit">ms</span>
+                </div>
+              </div>
+
+              <div class="options-field">
+                <label class="options-field__label" for="timeToWaitAfterFiveUnfollows">
+                  Pausa após 5 ciclos de unfollow
+                  <span class="options-field__hint">Evita bloqueio por atividade suspeita</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="timeToWaitAfterFiveUnfollows" name="timeToWaitAfterFiveUnfollows" required />
+                  <span class="options-field__unit">ms</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Mensagens Section -->
+          <section class="options-card">
+            <div class="options-card__header">
+              <div class="options-card__icon">💬</div>
+              <div class="options-card__title-group">
+                <h2 class="options-card__title">Mensagens</h2>
+                <p class="options-card__description">Configurações de feedback visual</p>
+              </div>
+            </div>
+            <div class="options-card__body">
+              <div class="options-field">
+                <label class="options-field__label" for="successMessageDuration">
+                  Duração da mensagem de sucesso
+                  <span class="options-field__hint">Tempo que a mensagem fica visível</span>
+                </label>
+                <div class="options-field__input-group">
+                  <input type="number" class="options-field__input" id="successMessageDuration" name="successMessageDuration" required />
+                  <span class="options-field__unit">ms</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Detecção de Perfis Section -->
+          <section class="options-card">
+            <div class="options-card__header">
+              <div class="options-card__icon">👤</div>
+              <div class="options-card__title-group">
+                <h2 class="options-card__title">Detecção de Perfis</h2>
+                <p class="options-card__description">IDs para identificar contas sem foto de perfil</p>
+              </div>
+            </div>
+            <div class="options-card__body">
+              <div class="options-field options-field--full">
+                <label class="options-field__label" for="withoutProfilePictureUrlIds">
+                  IDs de thumbnails padrão
+                  <span class="options-field__hint">Separados por vírgula. Usado para detectar contas sem foto.</span>
+                </label>
+                <textarea class="options-field__textarea" id="withoutProfilePictureUrlIds" name="withoutProfilePictureUrlIds" rows="2" required></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- API do Instagram Section -->
+          <section class="options-card">
+            <div class="options-card__header">
+              <div class="options-card__icon">⚙️</div>
+              <div class="options-card__title-group">
+                <h2 class="options-card__title">API do Instagram</h2>
+                <p class="options-card__description">Endpoints protegidos pela extensão</p>
+              </div>
+            </div>
+            <div class="options-card__body">
+              <div class="options-field options-field--full">
+                <label class="options-field__label" for="instagramGraphqlQueryHash">
+                  Query Hash do GraphQL
+                  <span class="options-field__hint">Valor protegido pela extensão para evitar endpoints maliciosos</span>
+                </label>
+                <input type="text" class="options-field__input options-field__input--mono" id="instagramGraphqlQueryHash" name="instagramGraphqlQueryHash" required readonly />
+              </div>
+
+              <div class="options-field options-field--full">
+                <label class="options-field__label" for="instagramGraphqlBaseUrl">
+                  URL Base do GraphQL
+                  <span class="options-field__hint">Endpoint protegido e bloqueado para edição</span>
+                </label>
+                <input type="url" class="options-field__input options-field__input--mono" id="instagramGraphqlBaseUrl" name="instagramGraphqlBaseUrl" required readonly />
+              </div>
+
+              <div class="options-field options-field--full">
+                <label class="options-field__label" for="instagramUnfollowBaseUrl">
+                  URL Base de Unfollow
+                  <span class="options-field__hint">Endpoint protegido e bloqueado para edição</span>
+                </label>
+                <input type="url" class="options-field__input options-field__input--mono" id="instagramUnfollowBaseUrl" name="instagramUnfollowBaseUrl" required readonly />
+              </div>
+            </div>
+          </section>
+
+          <!-- Actions -->
+          <div class="options-actions">
+            <button type="submit" class="options-btn options-btn--primary" id="saveBtn">
+              <span class="options-btn__icon">✓</span>
+              Salvar Configurações
+            </button>
+            <button type="button" class="options-btn options-btn--secondary" id="cancelBtn">
+              Cancelar
+            </button>
           </div>
 
-          <div class="form-row">
-            <label class="form-label" for="withoutProfilePictureUrlIds">IDs de thumbnails sem foto de perfil (separados por vírgula)</label>
-            <input type="text" class="form-input form-input--wide" id="withoutProfilePictureUrlIds" name="withoutProfilePictureUrlIds" required />
+          <!-- Success Message -->
+          <div class="options-toast" id="successMessage">
+            <span class="options-toast__icon">✓</span>
+            Configurações salvas com sucesso!
           </div>
-        </div>
+        </form>
+      </main>
 
-        <div class="section">
-          <div class="section-title">API Avançada</div>
-
-          <div class="form-row">
-            <label class="form-label" for="instagramGraphqlQueryHash">Query Hash GraphQL do Instagram</label>
-            <input type="text" class="form-input form-input--wide" id="instagramGraphqlQueryHash" name="instagramGraphqlQueryHash" required />
-          </div>
-
-          <div class="form-row">
-            <label class="form-label" for="instagramGraphqlBaseUrl">URL Base GraphQL</label>
-            <input type="url" class="form-input form-input--wide" id="instagramGraphqlBaseUrl" name="instagramGraphqlBaseUrl" required />
-          </div>
-
-          <div class="form-row">
-            <label class="form-label" for="instagramUnfollowBaseUrl">URL Base de Unfollow</label>
-            <input type="url" class="form-input form-input--wide" id="instagramUnfollowBaseUrl" name="instagramUnfollowBaseUrl" required />
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Monitoramento de Follows</div>
-
-          <div class="form-row">
-            <label class="form-label" for="followCooldownHours">Ignorar perfis seguidos com extensão ativa por</label>
-            <select class="form-input" id="followCooldownHours" style="width: 160px;">
-              <option value="0">Desativado</option>
-              <option value="24">24 horas</option>
-              <option value="168">1 semana</option>
-              <option value="720">1 mês</option>
-            </select>
-          </div>
-          <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
-            Quando ativo, perfis seguidos com a extensão ativa não aparecerão nos resultados do scan durante o período selecionado.
-          </p>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Interface & Feedback</div>
-
-          <div class="form-row">
-            <label class="form-label" for="successMessageDuration">Duração da mensagem de sucesso</label>
-            <input type="number" class="form-input" id="successMessageDuration" name="successMessageDuration" min="500" max="10000" required />
-            <span class="form-unit">(ms)</span>
-          </div>
-        </div>
-
-        <div class="btn-container">
-          <button type="button" class="btn" id="cancelBtn">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="saveBtn">Salvar</button>
-        </div>
-
-        <div class="success-msg" id="successMessage">Configurações salvas com sucesso!</div>
-      </form>
+      <!-- Footer -->
+      <footer class="options-footer">
+        <span class="options-footer__text">GhostGram v1.0.0</span>
+        <a href="https://ghostgram.com" class="options-footer__link" target="_blank">Documentação</a>
+      </footer>
     </div>
 
-    <script type="module" src="options.js"></script>
+    <script src="options.js" type="module"></script>
   </body>
 </html>

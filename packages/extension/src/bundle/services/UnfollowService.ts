@@ -7,7 +7,19 @@ import { dbService } from './DatabaseService.js';
 import { ACTION_TYPES, ACTION_SOURCES } from '../../constants/Constants.js';
 import type { User } from '../domain/User.js';
 
-type UnfollowProgressCallback = (percentage: number, log: UnfollowLogEntry[]) => void;
+export type UnfollowProgressUiStateType = 'running' | 'cooldown' | 'cycle_pause';
+
+export interface UnfollowProgressUiState {
+  state: UnfollowProgressUiStateType;
+  remainingMs: number | null;
+  reason: string | null;
+}
+
+type UnfollowProgressCallback = (
+  percentage: number,
+  log: UnfollowLogEntry[],
+  uiState?: UnfollowProgressUiState
+) => void;
 
 /**
  * Serviço responsável pela lógica de deixar de seguir usuários no Instagram
@@ -50,7 +62,6 @@ export class UnfollowService {
     for (let i = 0; i < users.length; i++) {
       if (this._shouldStop) break;
 
-      // Wait while paused
       while (this._isPaused && !this._shouldStop) {
         await DelayHelper.sleep(500);
       }
@@ -60,11 +71,15 @@ export class UnfollowService {
       const entry = await this._unfollowUser(user);
       log.push(entry);
 
+      if (this._shouldStop) {
+        break;
+      }
+
       const percentage = Math.round(((i + 1) / total) * 100);
       this._notifyProgress(percentage, log);
 
       if (i < users.length - 1) {
-        await this._waitBetweenUnfollows(i);
+        await this._waitBetweenUnfollows(i, percentage, log);
       }
     }
 
@@ -146,7 +161,9 @@ export class UnfollowService {
       return UnfollowLogEntry.createSuccess(user);
     } else {
       console.error(`[UnfollowService] Failed to unfollow ${username}:`, lastError?.message || 'Unknown error');
-      return UnfollowLogEntry.createFailure(user);
+      // Parar o processamento quando houver falha (conforme requisito)
+      this._shouldStop = true;
+      return UnfollowLogEntry.createFailure(user, lastError?.message || 'Unknown error');
     }
   }
 
@@ -173,29 +190,70 @@ export class UnfollowService {
     return isTransient;
   }
 
-  private async _waitBetweenUnfollows(index: number): Promise<void> {
+  private async _waitBetweenUnfollows(index: number, percentage: number, log: UnfollowLogEntry[]): Promise<void> {
     const baseDelay = this._settings.getTimeBetweenUnfollows();
     const randomDelay = DelayHelper.calculateRandomDelayWithVariation(baseDelay, 0.2);
-    await this._interruptibleSleep(randomDelay);
+
+    await this._interruptibleSleep(randomDelay, percentage, log, {
+      state: 'cooldown',
+      remainingMs: randomDelay,
+      reason: null
+    });
+
+    if (this._shouldStop) {
+      return;
+    }
 
     if (this._shouldWaitAfterFiveUnfollows(index)) {
+      const perCycle = this._settings.getUnfollowsPerCycle();
       const waitTime = this._settings.getTimeToWaitAfterFiveUnfollows();
-      await this._interruptibleSleep(waitTime);
+      await this._interruptibleSleep(waitTime, percentage, log, {
+        state: 'cycle_pause',
+        remainingMs: waitTime,
+        reason: `Pausa automática após ${perCycle} unfollows para reduzir o risco de bloqueio por atividade suspeita.`
+      });
+    }
+
+    if (!this._shouldStop) {
+      this._notifyProgress(percentage, log);
     }
   }
 
   /**
    * Sleep that can be interrupted by pause or stop, checking every 500ms
    */
-  private async _interruptibleSleep(ms: number): Promise<void> {
+  private async _interruptibleSleep(
+    ms: number,
+    percentage: number,
+    log: UnfollowLogEntry[],
+    uiState: UnfollowProgressUiState
+  ): Promise<void> {
+    if (ms <= 0) {
+      return;
+    }
+
     const interval = 500;
     let remaining = ms;
+    let lastNotifiedSeconds = -1;
+
     while (remaining > 0) {
       if (this._shouldStop) return;
+
       while (this._isPaused && !this._shouldStop) {
         await DelayHelper.sleep(interval);
       }
+
       if (this._shouldStop) return;
+
+      const remainingSeconds = Math.ceil(remaining / 1000);
+      if (remainingSeconds !== lastNotifiedSeconds) {
+        this._notifyProgress(percentage, log, {
+          ...uiState,
+          remainingMs: remaining
+        });
+        lastNotifiedSeconds = remainingSeconds;
+      }
+
       const chunk = Math.min(remaining, interval);
       await DelayHelper.sleep(chunk);
       remaining -= chunk;
@@ -207,9 +265,17 @@ export class UnfollowService {
     return index > 0 && (index + 1) % perCycle === 0;
   }
 
-  private _notifyProgress(percentage: number, log: UnfollowLogEntry[]): void {
+  private _notifyProgress(
+    percentage: number,
+    log: UnfollowLogEntry[],
+    uiState: UnfollowProgressUiState = {
+      state: 'running',
+      remainingMs: null,
+      reason: null
+    }
+  ): void {
     if (this._onProgress) {
-      this._onProgress(percentage, log);
+      this._onProgress(percentage, log, uiState);
     }
   }
 }

@@ -27,6 +27,7 @@ export class SettingsSaver {
       this._getIntValue(SETTINGS_KEYS.TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS, formElement),
       this._getIntValue(SETTINGS_KEYS.SUCCESS_MESSAGE_DURATION, formElement),
       this._getIntValue(SETTINGS_KEYS.UNFOLLOWERS_PER_PAGE, formElement),
+      this._getIntValue(SETTINGS_KEYS.UNFOLLOWS_PER_CYCLE, formElement),
       this._getIdsValue(SETTINGS_KEYS.WITHOUT_PROFILE_PICTURE_URL_IDS, formElement),
       this._getStringValue(SETTINGS_KEYS.INSTAGRAM_GRAPHQL_QUERY_HASH, formElement),
       this._getStringValue(SETTINGS_KEYS.INSTAGRAM_GRAPHQL_BASE_URL, formElement),
@@ -47,6 +48,11 @@ export class SettingsSaver {
     if (!input) {
       throw new Error(`Input with id "${key}" not found`);
     }
+
+    if (input.hasAttribute('readonly')) {
+      return input.value.trim();
+    }
+
     return input.value.trim();
   }
 

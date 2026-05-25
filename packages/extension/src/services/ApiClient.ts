@@ -141,7 +141,7 @@ export class ApiClient {
   async createCheckout(dto: CreateCheckoutDTO): Promise<CheckoutResponseDTO> {
     return this.request<CheckoutResponseDTO>('/billing/checkout', {
       method: 'POST',
-      body: JSON.stringify(dto)
+      body: JSON.stringify({ plan: dto.plan })
     });
   }
 

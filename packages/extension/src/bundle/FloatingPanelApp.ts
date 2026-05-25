@@ -3,6 +3,7 @@ import { FloatingPanel } from './components/FloatingPanel.js';
 import { InstagramApiClient } from './services/InstagramApiClient.js';
 import { ScanService } from './services/ScanService.js';
 import { UnfollowService } from './services/UnfollowService.js';
+import type { UnfollowProgressUiState } from './services/UnfollowService.js';
 import { UnfollowProgressModal } from './components/UnfollowProgressModal.js';
 import { StateManager } from './utils/StateManager.js';
 import { followMonitor } from './services/FollowMonitor.js';
@@ -12,7 +13,7 @@ import { User } from './domain/User.js';
 import { Settings } from '../domain/Settings.js';
 import { SyncStorageAdapter } from '../storage/SyncStorageAdapter.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
-import { STORAGE_KEYS, DEFAULT_QUICK_SETTINGS, MESSAGE_TYPES, ACTION_TYPES } from '../constants/Constants.js';
+import { STORAGE_KEYS, DEFAULT_QUICK_SETTINGS, MESSAGE_ACTIONS, MESSAGE_TYPES, ACTION_TYPES } from '../constants/Constants.js';
 import type { UnfollowLogEntry } from './domain/UnfollowLogEntry.js';
 
 interface ScanResumeOptions {
@@ -58,6 +59,7 @@ interface AppState {
   isPaused: boolean;
   isScanCompleted: boolean;
   isUnfollowing: boolean;
+  isUnfollowModalOpen: boolean;
   scanProgress: number;
   unfollowProgress: number;
   nonFollowers: User[];
@@ -111,6 +113,7 @@ export class FloatingPanelApp {
       isPaused: false,
       isScanCompleted: false,
       isUnfollowing: false,
+      isUnfollowModalOpen: false,
       scanProgress: 0,
       unfollowProgress: 0,
       nonFollowers: [],
@@ -500,6 +503,7 @@ export class FloatingPanelApp {
     console.log(`[FloatingPanelApp] Starting unfollow for ${usersToUnfollow.length} users`);
 
     this._state.isUnfollowing = true;
+    this._state.isUnfollowModalOpen = true;
     this._state.isExpanded = false;
     this._state.unfollowProgress = 0;
     this._state.unfollowLog = [];
@@ -511,17 +515,26 @@ export class FloatingPanelApp {
       onPause: () => { if (this._unfollowService) this._unfollowService.pause(); },
       onResume: () => { if (this._unfollowService) this._unfollowService.resume(); },
       onCancel: () => this._handleCancelUnfollow(),
-      onClose: () => { document.body.style.overflow = ''; this._unfollowModal = null; },
+      onClose: () => {
+        document.body.style.overflow = '';
+        this._unfollowModal = null;
+        this._state.isUnfollowModalOpen = false;
+        if (this._floatingPanel) {
+          this._update();
+        }
+      },
       totalCount: usersToUnfollow.length,
       timeBetweenUnfollows: this._settings.getTimeBetweenUnfollows(),
-      timeAfterFive: this._settings.getTimeToWaitAfterFiveUnfollows()
+      timeAfterFive: this._settings.getTimeToWaitAfterFiveUnfollows(),
+      unfollowsPerCycle: this._settings.getUnfollowsPerCycle()
     });
     this._unfollowModal.show();
 
     this._unfollowService = new UnfollowService(
       this._apiClient,
       this._settings,
-      (percentage: number, log: UnfollowLogEntry[]) => this._onUnfollowProgress(percentage, log)
+      (percentage: number, log: UnfollowLogEntry[], uiState?: UnfollowProgressUiState) =>
+        this._onUnfollowProgress(percentage, log, uiState)
     );
 
     try {
@@ -530,24 +543,52 @@ export class FloatingPanelApp {
       this._state.isUnfollowing = false;
       this._state.unfollowProgress = 100;
 
-      // Show completion in modal
-      if (this._unfollowModal) {
-        this._unfollowModal.complete(log);
+      // Verificar se houve alguma falha
+      const hasFailures = log.some(entry => entry.wasFailure());
+
+      if (hasFailures) {
+        // Houve falhas - parar serviço, limpar interface e mostrar alerta
+        this._state.isUnfollowing = false;
+        // Parar o serviço explícitamente caso ainda esteja rodando
+        if (this._unfollowService) {
+          this._unfollowService.stop();
+        }
+        document.body.style.overflow = '';
+        this._state.isUnfollowModalOpen = false;
+        if (this._unfollowModal) {
+          this._unfollowModal.destroy();
+          this._unfollowModal = null;
+        }
+
+        // Obter a mensagem de erro da primeira falha para mostrar ao usuário
+        const firstFailure = log.find(entry => entry.wasFailure());
+        const errorMsg = firstFailure ? firstFailure.getErrorMessage() : 'Erro desconhecido';
+
+        // Informar o usuário sobre o erro e sugerir verificar configurações se previamente alteradas
+        alert(`Não foi possível concluir o unfollow: ${errorMsg}\n\nVerifique suas configurações, especialmente o intervalo entre unfollows e o limite de ações por ciclo, se você as alterou previamente.`);
+      } else {
+        // Todas as ações foram bem-sucedidas
+        this._state.isUnfollowModalOpen = true;
+        // Show completion in modal
+        if (this._unfollowModal) {
+          this._unfollowModal.complete(log);
+        }
+
+        // Remove usuários que foram unfollowed da lista
+        const unfollowedIds = new Set(log.filter(e => e.wasSuccessful()).map(e => e.getUser().getId()));
+        const removedCount = this._state.nonFollowers.filter(user => unfollowedIds.has(user.getId())).length;
+        this._state.nonFollowers = this._state.nonFollowers.filter(
+          user => !unfollowedIds.has(user.getId())
+        );
+        this._state.selectedUsers.clear();
+
+        const successCount = log.filter(e => e.wasSuccessful()).length;
+        console.log(`[FloatingPanelApp] Unfollow concluído. ${successCount}/${usersToUnfollow.length} unfollows bem-sucedidos. ${removedCount} usuários removidos da lista.`);
       }
-
-      // Remove usuários que foram unfollowed da lista
-      const unfollowedIds = new Set(log.filter(e => e.wasSuccessful()).map(e => e.getUser().getId()));
-      const removedCount = this._state.nonFollowers.filter(user => unfollowedIds.has(user.getId())).length;
-      this._state.nonFollowers = this._state.nonFollowers.filter(
-        user => !unfollowedIds.has(user.getId())
-      );
-      this._state.selectedUsers.clear();
-
-      const successCount = log.filter(e => e.wasSuccessful()).length;
-      console.log(`[FloatingPanelApp] Unfollow concluído. ${successCount}/${usersToUnfollow.length} unfollows bem-sucedidos. ${removedCount} usuários removidos da lista.`);
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no unfollow:', error);
       this._state.isUnfollowing = false;
+      this._state.isUnfollowModalOpen = false;
       // Parar o serviço explícitamente caso ainda esteja rodando
       if (this._unfollowService) {
         this._unfollowService.stop();
@@ -573,6 +614,7 @@ export class FloatingPanelApp {
       this._unfollowService.stop();
     }
     this._state.isUnfollowing = false;
+    this._state.isUnfollowModalOpen = false;
     document.body.style.overflow = '';
     if (this._unfollowModal) {
       this._unfollowModal.destroy();
@@ -585,11 +627,15 @@ export class FloatingPanelApp {
   /**
    * Callback de progresso do unfollow
    */
-  private _onUnfollowProgress(percentage: number, log: UnfollowLogEntry[]): void {
+  private _onUnfollowProgress(
+    percentage: number,
+    log: UnfollowLogEntry[],
+    uiState?: UnfollowProgressUiState
+  ): void {
     this._state.unfollowProgress = percentage;
     this._state.unfollowLog = log;
     if (this._unfollowModal) {
-      this._unfollowModal.update(percentage, log);
+      this._unfollowModal.update(percentage, log, uiState);
     }
     this._update();
   }
@@ -679,14 +725,14 @@ export class FloatingPanelApp {
    * Abre a página de histórico completo
    * Usa bridge de comunicação pois o app roda no contexto da página, não do content script
    */
-  private _handleOpenHistory(): void {
-    console.log('[FloatingPanelApp] Abrindo página de histórico via bridge...');
+  private async _handleOpenHistory(): Promise<void> {
+    console.log('[FloatingPanelApp] Abrindo página de histórico...');
 
-    window.postMessage({
-      type: MESSAGE_TYPES.GHOSTGRAM_TO_BACKGROUND,
-      action: 'openHistory',
-      payload: {}
-    }, '*');
+    try {
+      await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.OPEN_HISTORY });
+    } catch (error) {
+      console.error('[FloatingPanelApp] Erro ao abrir histórico:', error);
+    }
   }
 
   /**
@@ -798,6 +844,7 @@ export class FloatingPanelApp {
       isPaused: this._state.isPaused,
       isScanCompleted: this._state.isScanCompleted,
       isUnfollowing: this._state.isUnfollowing,
+      isUnfollowModalOpen: this._state.isUnfollowModalOpen,
       scanProgress: this._state.scanProgress,
       unfollowProgress: this._state.unfollowProgress,
       nonFollowers: this._state.nonFollowers,

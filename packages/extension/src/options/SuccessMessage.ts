@@ -12,11 +12,11 @@ export class SuccessMessage {
   }
 
   show(): void {
-    this._element.classList.add('show');
+    this._element.classList.add('options-toast--visible');
     setTimeout(() => this._hide(), SUCCESS_MESSAGE_DURATION);
   }
 
   private _hide(): void {
-    this._element.classList.remove('show');
+    this._element.classList.remove('options-toast--visible');
   }
 }

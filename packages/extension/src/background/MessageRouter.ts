@@ -6,9 +6,8 @@ import { STORAGE_KEYS } from '../constants/Constants.js';
 import type { StorageAdapter } from '../storage/StorageAdapter.js';
 
 interface MessageRequest {
-  action: string;
+  action?: string;
   enabled?: boolean;
-  [key: string]: any;
 }
 
 /**
@@ -23,29 +22,74 @@ export class MessageRouter {
 
   async route(
     request: MessageRequest,
-    _sender: chrome.runtime.MessageSender,
+    sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ): Promise<boolean> {
-    console.log('[MessageRouter] Mensagem recebida:', request.action);
+    const action = this._getAllowedAction(request);
+    if (!action) {
+      return false;
+    }
 
-    if (request.action === MESSAGE_ACTIONS.GET_STATUS) {
+    console.log('[MessageRouter] Mensagem recebida:', action);
+
+    if (action === MESSAGE_ACTIONS.GET_STATUS) {
       await this._handleGetStatus(sendResponse);
       return true;
     }
-    if (request.action === MESSAGE_ACTIONS.UPDATE_STATUS) {
+
+    if (action === MESSAGE_ACTIONS.UPDATE_STATUS) {
       await this._handleUpdateStatus(request, sendResponse);
       return true;
     }
-    if (request.action === MESSAGE_ACTIONS.OPEN_HISTORY) {
-      console.log('[MessageRouter] Processando openHistory...');
+
+    if (action === MESSAGE_ACTIONS.OPEN_HISTORY) {
+      if (!this._isTrustedExtensionSender(sender)) {
+        sendResponse({ success: false, error: 'Unauthorized sender' });
+        return true;
+      }
+
       await this._handleOpenHistory(sendResponse);
       return true;
     }
+
     return false;
   }
 
+  private _getAllowedAction(request: MessageRequest): string | null {
+    if (!request || typeof request.action !== 'string') {
+      return null;
+    }
+
+    if (request.action === MESSAGE_ACTIONS.GET_STATUS) {
+      return MESSAGE_ACTIONS.GET_STATUS;
+    }
+
+    if (request.action === MESSAGE_ACTIONS.UPDATE_STATUS) {
+      return MESSAGE_ACTIONS.UPDATE_STATUS;
+    }
+
+    if (request.action === MESSAGE_ACTIONS.OPEN_HISTORY) {
+      return MESSAGE_ACTIONS.OPEN_HISTORY;
+    }
+
+    return null;
+  }
+
+  private _isTrustedExtensionSender(sender: chrome.runtime.MessageSender): boolean {
+    if (!sender.tab?.url) {
+      return true;
+    }
+
+    try {
+      const senderUrl = new URL(sender.tab.url);
+      return senderUrl.origin === 'https://www.instagram.com';
+    } catch {
+      return false;
+    }
+  }
+
   private async _handleOpenHistory(sendResponse: (response?: any) => void): Promise<void> {
-    chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
     sendResponse({ success: true });
   }
 

@@ -31,6 +31,32 @@ describe('MessageRouter', () => {
       const result = await router.route(request, {}, sendResponse);
       expect(result).toBe(true);
     });
+
+    it('should reject openHistory from untrusted tab sender', async () => {
+      const sendResponse = jest.fn();
+      const result = await router.route(
+        { action: MESSAGE_ACTIONS.OPEN_HISTORY },
+        { tab: { url: 'https://evil.example/' } },
+        sendResponse
+      );
+
+      expect(result).toBe(true);
+      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Unauthorized sender' });
+      expect(chromeMock.tabs.create).not.toHaveBeenCalled();
+    });
+
+    it('should allow openHistory from extension context', async () => {
+      const sendResponse = jest.fn();
+      const result = await router.route(
+        { action: MESSAGE_ACTIONS.OPEN_HISTORY },
+        {},
+        sendResponse
+      );
+
+      expect(result).toBe(true);
+      expect(chromeMock.tabs.create).toHaveBeenCalled();
+      expect(sendResponse).toHaveBeenCalledWith({ success: true });
+    });
   });
 
   describe('_handleGetStatus', () => {
@@ -59,4 +85,3 @@ describe('MessageRouter', () => {
     });
   });
 });
-

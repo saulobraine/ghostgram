@@ -1,6 +1,7 @@
 // UnfollowProgressModal - Full-screen modal for unfollow progress
 import { createElement } from '../utils/DOMRenderer.js';
 import { getIconUrl } from './Logo.js';
+import type { UnfollowProgressUiState } from '../services/UnfollowService.js';
 
 interface UnfollowLogEntry {
   getUser(): {
@@ -19,6 +20,7 @@ interface UnfollowProgressModalOptions {
   totalCount?: number;
   timeBetweenUnfollows?: number;
   timeAfterFive?: number;
+  unfollowsPerCycle?: number;
 }
 
 interface ModalRefs {
@@ -27,6 +29,10 @@ interface ModalRefs {
   barFill?: HTMLElement;
   statusLine?: HTMLElement;
   warning?: HTMLElement;
+  listContainer?: HTMLElement;
+  pauseState?: HTMLElement;
+  pauseCountdown?: HTMLElement;
+  pauseReason?: HTMLElement;
   list?: HTMLElement;
   pauseBtn?: HTMLButtonElement;
   cancelBtn?: HTMLButtonElement;
@@ -49,9 +55,10 @@ export class UnfollowProgressModal {
   private _totalCount: number;
   private _timeBetweenUnfollows: number;
   private _timeAfterFive: number;
+  private _unfollowsPerCycle: number;
   private _startTime: number;
 
-  constructor({ onPause, onResume, onCancel, onClose, totalCount, timeBetweenUnfollows, timeAfterFive }: UnfollowProgressModalOptions) {
+  constructor({ onPause, onResume, onCancel, onClose, totalCount, timeBetweenUnfollows, timeAfterFive, unfollowsPerCycle }: UnfollowProgressModalOptions) {
     this._onPause = onPause || null;
     this._onResume = onResume || null;
     this._onCancel = onCancel || null;
@@ -63,6 +70,7 @@ export class UnfollowProgressModal {
     this._totalCount = totalCount || 0;
     this._timeBetweenUnfollows = timeBetweenUnfollows || 4000;
     this._timeAfterFive = timeAfterFive || 300000;
+    this._unfollowsPerCycle = unfollowsPerCycle || 5;
     this._startTime = Date.now();
   }
 
@@ -113,9 +121,13 @@ export class UnfollowProgressModal {
       '⚠️ Não feche esta janela até o processo finalizar') as HTMLElement;
     modal.appendChild(this._refs.warning);
 
+    const listContainer = createElement('div', { className: 'iu-unfollow-modal-list-container' }) as HTMLElement;
+    this._refs.listContainer = listContainer;
+
     // Scrollable user list
     this._refs.list = createElement('div', { className: 'iu-unfollow-modal-list' }) as HTMLElement;
-    modal.appendChild(this._refs.list);
+    listContainer.appendChild(this._refs.list);
+    modal.appendChild(listContainer);
 
     // Footer with buttons
     const footer = createElement('div', { className: 'iu-unfollow-modal-footer' }) as HTMLElement;
@@ -172,16 +184,33 @@ export class UnfollowProgressModal {
     document.head.appendChild(style);
   }
 
+  private _getRemainingCycles(remaining: number): number {
+    if (remaining <= 0) {
+      return 0;
+    }
+
+    return Math.ceil(remaining / this._unfollowsPerCycle);
+  }
+
   /**
    * Calcula estimativa de tempo restante
    */
-  private _estimateRemaining(doneCount: number): string {
+  private _estimateRemaining(doneCount: number, uiState?: UnfollowProgressUiState): string {
     const remaining = this._totalCount - doneCount;
     if (remaining <= 0) return '';
 
-    // Tempo médio por unfollow considerando pausas após cada 5
-    const fullCycles = Math.floor(remaining / 5);
-    const totalMs = (remaining * this._timeBetweenUnfollows) + (fullCycles * this._timeAfterFive);
+    const remainingCycles = this._getRemainingCycles(remaining);
+    const scheduledPauseCount = Math.max(remainingCycles - 1, 0);
+    const currentCyclePauseMs = uiState?.state === 'cycle_pause'
+      ? uiState.remainingMs ?? this._timeAfterFive
+      : 0;
+    const futurePauseCount = Math.max(scheduledPauseCount - (uiState?.state === 'cycle_pause' ? 1 : 0), 0);
+    const unfollowRequestOverheadMs = remaining * 1000;
+    const totalMs =
+      (remaining * this._timeBetweenUnfollows) +
+      unfollowRequestOverheadMs +
+      currentCyclePauseMs +
+      (futurePauseCount * this._timeAfterFive);
 
     if (totalMs < 60000) {
       return `~${Math.ceil(totalMs / 1000)}s`;
@@ -194,27 +223,89 @@ export class UnfollowProgressModal {
     return `até ${finishTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
-  private _buildStatusText(doneCount: number): string {
+  private _buildStatusText(doneCount: number, uiState?: UnfollowProgressUiState): string {
     const remaining = this._totalCount - doneCount;
-    const estimate = this._estimateRemaining(doneCount);
+    const remainingCycles = this._getRemainingCycles(remaining);
+    const estimate = this._estimateRemaining(doneCount, uiState);
     let text = `Faltam ${remaining} de ${this._totalCount}`;
+    if (remainingCycles > 0) {
+      text += ` · ${remainingCycles} ${remainingCycles === 1 ? 'ciclo' : 'ciclos'}`;
+    }
     if (estimate) text += ` · Previsão: ${estimate}`;
     return text;
+  }
+
+  private _formatCountdown(remainingMs: number | null): string {
+    if (remainingMs === null) {
+      return '--:--';
+    }
+
+    const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private _removePauseState(): void {
+    if (this._refs.pauseState) {
+      this._refs.pauseState.remove();
+    }
+    this._refs.pauseState = undefined;
+    this._refs.pauseCountdown = undefined;
+    this._refs.pauseReason = undefined;
+  }
+
+  private _ensurePauseState(): void {
+    if (!this._refs.listContainer || this._refs.pauseState) {
+      return;
+    }
+
+    const pauseState = createElement('div', {
+      className: 'iu-unfollow-modal-pause-state'
+    }) as HTMLElement;
+    this._refs.pauseState = pauseState;
+    this._refs.pauseCountdown = createElement('div', { className: 'iu-unfollow-modal-pause-countdown' }) as HTMLElement;
+    this._refs.pauseReason = createElement('p', { className: 'iu-unfollow-modal-pause-reason' }) as HTMLElement;
+    pauseState.appendChild(this._refs.pauseCountdown);
+    pauseState.appendChild(this._refs.pauseReason);
+    this._refs.listContainer.appendChild(pauseState);
+  }
+
+  private _renderPauseState(uiState?: UnfollowProgressUiState): void {
+    if (!this._overlay) {
+      return;
+    }
+
+    if (!uiState || uiState.state === 'running' || uiState.state === 'cooldown') {
+      this._overlay.classList.remove('iu-unfollow-modal-overlay-paused');
+      this._removePauseState();
+      return;
+    }
+
+    this._ensurePauseState();
+    if (!this._refs.pauseState || !this._refs.pauseCountdown || !this._refs.pauseReason) {
+      return;
+    }
+
+    this._overlay.classList.add('iu-unfollow-modal-overlay-paused');
+    this._refs.pauseCountdown.textContent = `Retomando em ${this._formatCountdown(uiState.remainingMs)}`;
+    this._refs.pauseReason.textContent = uiState.reason || 'Pausa automática do ciclo em andamento.';
   }
 
   /**
    * Updates the modal with new progress data
    */
-  update(percentage: number, log: UnfollowLogEntry[]): void {
+  update(percentage: number, log: UnfollowLogEntry[], uiState?: UnfollowProgressUiState): void {
     if (!this._overlay) return;
 
     (this._refs.barFill as HTMLElement).style.width = `${percentage}%`;
     this._refs.progressPct!.textContent = `${percentage}%`;
 
-    // Update status line
     if (this._refs.statusLine) {
-      this._refs.statusLine.textContent = this._buildStatusText(log.length);
+      this._refs.statusLine.textContent = this._buildStatusText(log.length, uiState);
     }
+
+    this._renderPauseState(uiState);
 
     // Update list — append only new entries
     const currentCount = this._refs.list!.children.length;
@@ -276,6 +367,7 @@ export class UnfollowProgressModal {
     this._refs.warning!.textContent = `✅ ${successes} removidos com sucesso` +
       (failures > 0 ? ` · ❌ ${failures} com erro` : '');
     this._refs.warning!.classList.add('iu-unfollow-modal-summary');
+    this._renderPauseState({ state: 'running', remainingMs: null, reason: null });
 
     // Hide pause/cancel, show close
     this._refs.pauseBtn!.style.display = 'none';

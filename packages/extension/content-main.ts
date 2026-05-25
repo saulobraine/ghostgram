@@ -2,7 +2,6 @@
 // Carrega o FloatingPanelApp automaticamente quando no Instagram
 
 import { HostnameValidator } from './src/hostname/HostnameValidator.js';
-import { MESSAGE_TYPES } from './src/constants/Constants.js';
 import type { FloatingPanelApp } from './src/bundle/FloatingPanelApp.js';
 
 interface MessageRequest {
@@ -140,9 +139,6 @@ class ContentScript {
 
   private async _loadFloatingPanel(): Promise<void> {
     try {
-      // Configura bridge de comunicação antes de carregar o app
-      this._setupCommunicationBridge();
-
       // Importa e inicializa o FloatingPanelApp
       const module = await import(
         /* @vite-ignore */ chrome.runtime.getURL('src/bundle/FloatingPanelApp.js')
@@ -164,49 +160,6 @@ class ContentScript {
     } catch (error) {
       console.error('[GhostGram] Erro ao carregar painel:', error);
     }
-  }
-
-  /**
-   * Configura bridge de comunicação entre o app (contexto da página) e o background (via content script)
-   * O FloatingPanelApp roda no contexto da página e não tem acesso ao chrome.runtime
-   * @private
-   */
-  private _setupCommunicationBridge(): void {
-    window.addEventListener('message', async (event: MessageEvent) => {
-      // Ignora mensagens de outras origens
-      if (event.source !== window) {
-        return;
-      }
-
-      // Processa apenas mensagens do GhostGram
-      if (event.data?.type !== MESSAGE_TYPES.GHOSTGRAM_TO_BACKGROUND) {
-        return;
-      }
-
-      const { action, payload } = event.data as { action: string; payload?: Record<string, any> };
-      console.log('[GhostGram Bridge] Encaminhando para background:', action);
-
-      try {
-        const response = await chrome.runtime.sendMessage({ action, ...payload });
-
-        // Envia resposta de volta para o app
-        window.postMessage({
-          type: 'GHOSTGRAM_FROM_BACKGROUND',
-          action,
-          response,
-          success: true
-        }, '*');
-      } catch (error) {
-        const err = error as Error;
-        console.error('[GhostGram Bridge] Erro:', error);
-        window.postMessage({
-          type: 'GHOSTGRAM_FROM_BACKGROUND',
-          action,
-          error: err.message,
-          success: false
-        }, '*');
-      }
-    });
   }
 
   /**

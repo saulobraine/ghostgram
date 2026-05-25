@@ -43,7 +43,11 @@ export class UrlGenerator {
    * @returns URL completa
    */
   static generateUnfollowUrl(settings: Settings, userId: string): string {
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      throw new Error(`Invalid user ID for unfollow: ${userId}`);
+    }
     const baseUrl = settings.getInstagramUnfollowBaseUrl();
-    return `${baseUrl}${userId}/unfollow/`;
+    // Usa encodeURIComponent para safety, embora IDs do Instagram sejam numéricos
+    return `${baseUrl}${encodeURIComponent(userId.trim())}/unfollow/`;
   }
 }

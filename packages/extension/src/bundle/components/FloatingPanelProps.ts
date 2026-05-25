@@ -14,6 +14,7 @@ export interface FloatingPanelProps {
   isPaused: boolean;
   isScanCompleted: boolean;
   isUnfollowing: boolean;
+  isUnfollowModalOpen: boolean;
   scanProgress: number;
   unfollowProgress: number;
   nonFollowers: User[];
@@ -29,7 +30,7 @@ export interface FloatingPanelProps {
   onCancelScan: () => void;
   onStartUnfollow: () => void;
   onToggleUser: (userId: string) => void;
-  onToggleAll: (selectAll: boolean) => void;
+  onToggleAll: (selectAll: boolean, userIds?: string[]) => void;
   onToggleWhitelist: (userId: string) => void;
   onChangeTab: (tab: 'nonFollowers' | 'whitelist') => void;
   onSearch: (query: string) => void;

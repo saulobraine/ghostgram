@@ -4,7 +4,6 @@
 
 // Constantes inlinadas para evitar imports estáticos (content scripts clássicos não suportam ESM)
 const INSTAGRAM_HOSTNAME = 'www.instagram.com';
-const MESSAGE_TYPE_TO_BACKGROUND = 'GHOSTGRAM_TO_BACKGROUND';
 
 interface FloatingPanelAppInterface {
   init(container: HTMLElement): Promise<void>;
@@ -152,9 +151,6 @@ class ContentScript {
    */
   private async _loadFloatingPanel(): Promise<void> {
     try {
-      // Configura bridge de comunicação antes de carregar o app
-      this._setupCommunicationBridge();
-
       // Importa e inicializa o FloatingPanelApp
       const moduleUrl = chrome.runtime.getURL('src/bundle/FloatingPanelApp.js');
       const module = await import(/* @vite-ignore */ moduleUrl) as {
@@ -177,49 +173,6 @@ class ContentScript {
     } catch (error) {
       console.error('[GhostGram] Erro ao carregar painel:', error);
     }
-  }
-
-  /**
-   * Configura bridge de comunicação entre o app e o background (via content script).
-   * O FloatingPanelApp usa postMessage para comunicar com o background.
-   * @private
-   */
-  private _setupCommunicationBridge(): void {
-    window.addEventListener('message', async (event: MessageEvent) => {
-      // Ignora mensagens de outras origens
-      if (event.source !== window) {
-        return;
-      }
-
-      // Processa apenas mensagens do GhostGram
-      if (event.data?.type !== MESSAGE_TYPE_TO_BACKGROUND) {
-        return;
-      }
-
-      const { action, payload } = event.data as { action: string; payload?: Record<string, any> };
-      console.log('[GhostGram Bridge] Encaminhando para background:', action);
-
-      try {
-        const response = await chrome.runtime.sendMessage({ action, ...payload });
-
-        // Envia resposta de volta para o app
-        window.postMessage({
-          type: 'GHOSTGRAM_FROM_BACKGROUND',
-          action,
-          response,
-          success: true
-        }, '*');
-      } catch (error) {
-        const err = error as Error;
-        console.error('[GhostGram Bridge] Erro:', error);
-        window.postMessage({
-          type: 'GHOSTGRAM_FROM_BACKGROUND',
-          action,
-          error: err.message,
-          success: false
-        }, '*');
-      }
-    });
   }
 
   /**

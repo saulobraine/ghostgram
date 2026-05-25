@@ -10,7 +10,7 @@ function createFormInputsMock() {
   const allKeys = [
     'timeBetweenSearchCycles', 'timeToWaitAfterFiveSearchCycles',
     'timeBetweenUnfollows', 'timeToWaitAfterFiveUnfollows',
-    'successMessageDuration', 'unfollowersPerPage',
+    'successMessageDuration', 'unfollowersPerPage', 'unfollowsPerCycle',
     'withoutProfilePictureUrlIds', 'instagramGraphqlQueryHash',
     'instagramGraphqlBaseUrl', 'instagramUnfollowBaseUrl'
   ];
@@ -58,6 +58,7 @@ describe('SettingsLoader', () => {
         getTimeToWaitAfterFiveUnfollows: () => 400000,
         getSuccessMessageDuration: () => d.successMessageDuration,
         getUnfollowersPerPage: () => d.unfollowersPerPage,
+        getUnfollowsPerCycle: () => d.unfollowsPerCycle,
         getWithoutProfilePictureUrlIds: () => d.withoutProfilePictureUrlIds,
         getInstagramGraphqlQueryHash: () => d.instagramGraphqlQueryHash,
         getInstagramGraphqlBaseUrl: () => d.instagramGraphqlBaseUrl,

@@ -12,6 +12,7 @@ function createBaseProps(overrides = {}) {
     isPaused: false,
     isScanCompleted: false,
     isUnfollowing: false,
+    isUnfollowModalOpen: false,
     scanProgress: 0,
     unfollowProgress: 0,
     nonFollowers: [],
@@ -89,6 +90,17 @@ describe('FloatingPanel', () => {
 
       const toggleBtn = element.querySelector('.iu-toggle-button');
       expect(toggleBtn).not.toBeNull();
+    });
+
+    it('não deve criar toggle button com modal de unfollow aberto', () => {
+      const props = createBaseProps({
+        isExpanded: false,
+        isUnfollowModalOpen: true
+      });
+      const element = panel.render(props);
+
+      const toggleBtn = element.querySelector('.iu-toggle-button');
+      expect(toggleBtn).toBeNull();
     });
 
     it('deve criar conteúdo quando expandido', () => {
@@ -247,6 +259,20 @@ describe('FloatingPanel', () => {
       expect(resultsSection).not.toBeNull();
     });
 
+    it('deve exibir whitelist zerada quando não houver usuários visíveis na whitelist', () => {
+      const users = [createMockUser(1), createMockUser(2)];
+      const props = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: users,
+        whitelist: new Set(['999'])
+      });
+      const element = panel.render(props);
+
+      const tabs = element.querySelectorAll('.iu-tab');
+      expect(tabs[1].textContent).toContain('Whitelist (0)');
+    });
+
     it('deve mostrar tabs (abas)', () => {
       const users = [createMockUser(1)];
       const props = createBaseProps({
@@ -323,6 +349,38 @@ describe('FloatingPanel', () => {
 
       expect(panel.element.classList.contains('iu-expanded')).toBe(true);
       expect(panel.element.querySelector('.iu-content')).not.toBeNull();
+    });
+
+    it('deve esconder toggle button ao abrir modal de unfollow', () => {
+      const props1 = createBaseProps({ isExpanded: false });
+      panel.render(props1);
+
+      const props2 = createBaseProps({
+        isExpanded: false,
+        isUnfollowModalOpen: true
+      });
+      panel.update(props2);
+
+      expect(panel.element.querySelector('.iu-toggle-button')).toBeNull();
+    });
+
+    it('deve recriar toggle button ao fechar modal de unfollow', () => {
+      const props1 = createBaseProps({
+        isExpanded: false,
+        isUnfollowModalOpen: true
+      });
+      panel.render(props1);
+
+      const props2 = createBaseProps({
+        isExpanded: false,
+        isUnfollowModalOpen: false,
+        nonFollowers: [createMockUser(1)]
+      });
+      panel.update(props2);
+
+      const toggleBtn = panel.element.querySelector('.iu-toggle-button');
+      expect(toggleBtn).not.toBeNull();
+      expect(toggleBtn.querySelector('.iu-badge')?.textContent).toBe('1');
     });
   });
 

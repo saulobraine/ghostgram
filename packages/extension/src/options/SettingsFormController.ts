@@ -42,9 +42,13 @@ export class SettingsFormController {
   }
 
   private async _handleSubmit(formElement: HTMLFormElement): Promise<void> {
-    await this._saver.saveFromForm(formElement);
-    if (this._successMessage) {
-      this._successMessage.show();
+    try {
+      await this._saver.saveFromForm(formElement);
+      if (this._successMessage) {
+        this._successMessage.show();
+      }
+    } catch (error) {
+      console.error('[SettingsFormController] Erro ao salvar:', error);
     }
   }
 

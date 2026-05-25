@@ -5,6 +5,7 @@
 const STORAGE_KEY = 'ghostgram_actions_history';
 const PER_PAGE_KEY = 'ghostgram_history_per_page';
 const DEFAULT_PER_PAGE = 25;
+const INSTAGRAM_PROFILE_BASE_URL = 'https://www.instagram.com';
 
 interface HistoryAction {
   actionType: string;
@@ -192,10 +193,13 @@ class HistoryPage {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
 
-    this._topProfiles.innerHTML = '';
+    this._topProfiles.replaceChildren();
 
     if (sorted.length === 0) {
-      this._topProfiles.innerHTML = '<span class="empty-hint">Nenhum unfollow registrado ainda.</span>';
+      const emptyHint = document.createElement('span');
+      emptyHint.className = 'empty-hint';
+      emptyHint.textContent = 'Nenhum unfollow registrado ainda.';
+      this._topProfiles.appendChild(emptyHint);
       return;
     }
 
@@ -203,13 +207,25 @@ class HistoryPage {
     sorted.forEach(([username, count], i) => {
       const card = document.createElement('div');
       card.className = 'top-profile';
-      card.innerHTML = `
-        <span class="rank">${medals[i]}</span>
-        <div class="profile-info">
-          <a href="https://www.instagram.com/${username}/" target="_blank" class="profile-name">@${username}</a>
-          <span class="profile-count">${count}× desseguido</span>
-        </div>
-      `;
+
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = medals[i];
+
+      const profileInfo = document.createElement('div');
+      profileInfo.className = 'profile-info';
+
+      const profileLink = this._createProfileLink(username, 'profile-name');
+      profileLink.textContent = `@${username}`;
+
+      const profileCount = document.createElement('span');
+      profileCount.className = 'profile-count';
+      profileCount.textContent = `${count}× desseguido`;
+
+      profileInfo.appendChild(profileLink);
+      profileInfo.appendChild(profileCount);
+      card.appendChild(rank);
+      card.appendChild(profileInfo);
       this._topProfiles.appendChild(card);
     });
   }
@@ -251,7 +267,7 @@ class HistoryPage {
   }
 
   _renderActions(actions: HistoryAction[]): void {
-    this._listEl.innerHTML = '';
+    this._listEl.replaceChildren();
 
     if (actions.length === 0) {
       this._listEl.style.display = 'none';
@@ -271,15 +287,28 @@ class HistoryPage {
       const isAuto = action.source === 'auto';
       const sourceText = isAuto ? 'Auto' : 'Manual';
 
-      li.innerHTML = `
-        <span class="history-item__date">${date}</span>
-        <span class="history-item__user">
-          <a href="https://www.instagram.com/${action.username}/" target="_blank" class="username-link">@${action.username}</a>
-        </span>
-        <span class="history-item__action"><span class="badge ${actionInfo.badgeClass}">${actionInfo.text}</span></span>
-        <span class="history-item__source"><span class="badge badge-source${isAuto ? ' auto' : ''}">${sourceText}</span></span>
-      `;
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'history-item__date';
+      dateSpan.textContent = date;
 
+      const userSpan = document.createElement('span');
+      userSpan.className = 'history-item__user';
+      const userLink = this._createProfileLink(action.username, 'username-link');
+      userLink.textContent = `@${action.username}`;
+      userSpan.appendChild(userLink);
+
+      const actionSpan = document.createElement('span');
+      actionSpan.className = 'history-item__action';
+      actionSpan.appendChild(this._createBadge(actionInfo.text, `badge ${actionInfo.badgeClass}`));
+
+      const sourceSpan = document.createElement('span');
+      sourceSpan.className = 'history-item__source';
+      sourceSpan.appendChild(this._createBadge(sourceText, `badge badge-source${isAuto ? ' auto' : ''}`));
+
+      li.appendChild(dateSpan);
+      li.appendChild(userSpan);
+      li.appendChild(actionSpan);
+      li.appendChild(sourceSpan);
       this._listEl.appendChild(li);
     });
   }
@@ -328,6 +357,22 @@ class HistoryPage {
       await this._clearAllActions();
       await this.loadHistory();
     }
+  }
+
+  private _createProfileLink(username: string, className: string): HTMLAnchorElement {
+    const link = document.createElement('a');
+    link.href = `${INSTAGRAM_PROFILE_BASE_URL}/${encodeURIComponent(username)}/`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = className;
+    return link;
+  }
+
+  private _createBadge(text: string, className: string): HTMLSpanElement {
+    const badge = document.createElement('span');
+    badge.className = className;
+    badge.textContent = text;
+    return badge;
   }
 }
 

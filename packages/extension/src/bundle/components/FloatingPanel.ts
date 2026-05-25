@@ -112,6 +112,10 @@ export class FloatingPanel {
     this._showUserHistory(username);
   }
 
+  private _shouldShowToggleButton(props: FloatingPanelProps): boolean {
+    return !props.isExpanded && !props.isUnfollowModalOpen;
+  }
+
   /**
    * Renderiza o componente pela primeira vez
    */
@@ -126,7 +130,7 @@ export class FloatingPanel {
     if (props.isExpanded) {
       this._refs.content = this._createContent(props);
       this.element.appendChild(this._refs.content);
-    } else {
+    } else if (this._shouldShowToggleButton(props)) {
       this._refs.toggleButton = this._createToggleButton(props);
       this.element.appendChild(this._refs.toggleButton);
     }
@@ -167,29 +171,23 @@ export class FloatingPanel {
               this._clearVisualRefs();
             }
             this.element!.classList.remove('iu-expanded');
-
-            // Adiciona de volta o botão toggle
-            this._refs.toggleButton = this._createToggleButton(props);
-            this.element!.appendChild(this._refs.toggleButton);
-            this._updateBadge(props.nonFollowers.length);
+            this._syncToggleButton(props);
           }, { once: true });
         } else {
           this.element!.classList.remove('iu-expanded');
-          this._refs.toggleButton = this._createToggleButton(props);
-          this.element!.appendChild(this._refs.toggleButton);
-          this._updateBadge(props.nonFollowers.length);
+          this._syncToggleButton(props);
         }
       }
       return;
     }
 
-    // Atualiza badge
-    this._updateBadge(props.nonFollowers.length);
-
-    // Se não está expandido, não precisa atualizar conteúdo
     if (!props.isExpanded) {
+      this._syncToggleButton(props);
       return;
     }
+
+    // Atualiza badge
+    this._updateBadge(props.nonFollowers.length);
 
     // Atualiza seções baseado no estado
     this._updateSections(props, prevProps);
@@ -338,6 +336,10 @@ export class FloatingPanel {
     this._updateTabCounters(props);
   }
 
+  private _getVisibleWhitelistCount(props: FloatingPanelProps): number {
+    return props.nonFollowers.filter(user => props.whitelist?.has(user.getId())).length;
+  }
+
   /**
    * Atualiza os contadores das tabs (Encontrados/Non-seguidores / Whitelist)
    */
@@ -346,11 +348,11 @@ export class FloatingPanel {
     if (!section) return;
     const tabs = section.querySelectorAll('.iu-tab');
     if (tabs.length >= 2) {
-      // Determine the correct label for the first tab based on the section
       const isProgressSection = !!this._refs.progressSection;
       const firstTabLabel = isProgressSection ? 'Encontrados' : 'Não-seguidores';
+      const whitelistCount = this._getVisibleWhitelistCount(props);
       tabs[0].textContent = `${firstTabLabel} (${props.nonFollowers.length})`;
-      tabs[1].textContent = `Whitelist (${props.whitelist?.size || 0})`;
+      tabs[1].textContent = `Whitelist (${whitelistCount})`;
     }
   }
 
@@ -467,6 +469,29 @@ export class FloatingPanel {
       this._refs.unfollowBtn.remove();
       this._refs.unfollowBtn = null;
     }
+  }
+
+  private _syncToggleButton(props: FloatingPanelProps): void {
+    if (!this.element) {
+      return;
+    }
+
+    if (!this._shouldShowToggleButton(props)) {
+      if (this._refs.toggleButton) {
+        this._refs.toggleButton.remove();
+        this._refs.toggleButton = null;
+        this._refs.badge = null;
+      }
+      return;
+    }
+
+    if (!this._refs.toggleButton) {
+      this._refs.toggleButton = this._createToggleButton(props);
+      this.element.appendChild(this._refs.toggleButton);
+      return;
+    }
+
+    this._updateBadge(props.nonFollowers.length);
   }
 
   /**
@@ -728,7 +753,7 @@ export class FloatingPanel {
 
     // Tabs (Encontrados / Whitelist) — always visible during scan
     {
-      const whitelistCount = props.whitelist?.size || 0;
+      const whitelistCount = this._getVisibleWhitelistCount(props);
       const tabs = createElement('div', { className: 'iu-tabs' });
 
       const tabFound = createElement('button', {
@@ -838,7 +863,7 @@ export class FloatingPanel {
     }, `Encontrados (${props.nonFollowers.length})`);
     tabs.appendChild(tabNonFollowers);
 
-    const whitelistCount = props.whitelist?.size || 0;
+    const whitelistCount = this._getVisibleWhitelistCount(props);
     const tabWhitelist = createElement('button', {
       className: `iu-tab ${props.activeTab === 'whitelist' ? 'iu-tab-active' : ''}`,
       onClick: () => props.onChangeTab('whitelist')
@@ -848,7 +873,7 @@ export class FloatingPanel {
     section.appendChild(tabs);
 
     // Campo de pesquisa (só mostra se tiver 2 ou mais usuários)
-    const totalUsers = props.nonFollowers.length + (props.whitelist?.size || 0);
+    const totalUsers = props.nonFollowers.length + this._getVisibleWhitelistCount(props);
     if (totalUsers >= 2) {
       const searchContainer = createElement('div', { className: 'iu-search-container' });
       const searchInput = createElement('input', {
@@ -1246,7 +1271,14 @@ export class FloatingPanel {
 
     // Lista de ações
     const list = document.createElement('div');
-    list.style.cssText = `display: flex !important; flex-direction: column !important; gap: 8px !important;`;
+    list.style.cssText = `
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      max-height: 50vh !important;
+      overflow-y: auto !important;
+      padding-right: 4px !important;
+    `;
 
     const actionLabels: Record<string, ActionLabel> = {
       [ACTION_TYPES.FOLLOW]: { text: 'Seguiu', color: '#22c55e' },

@@ -16,6 +16,7 @@ const staticFiles: string[] = [
   'popup.html',
   'popup.css',
   'options.html',
+  'options.css',
   'styles.css',
   'history.html'
 ];

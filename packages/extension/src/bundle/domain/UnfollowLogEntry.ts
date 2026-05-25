@@ -9,21 +9,23 @@ export class UnfollowLogEntry {
   private readonly _user: User;
   private readonly _unfollowedSuccessfully: boolean;
   private readonly _timestamp: number;
+  private readonly _errorMessage: string | null;
 
-  constructor(user: User | IUserObject, unfollowedSuccessfully: boolean, timestamp?: number) {
+  constructor(user: User | IUserObject, unfollowedSuccessfully: boolean, timestamp?: number, errorMessage: string | null = null) {
     this._validate(user, unfollowedSuccessfully);
-    
+
     this._user = user instanceof User ? user : User.fromObject(user);
     this._unfollowedSuccessfully = Boolean(unfollowedSuccessfully);
     this._timestamp = timestamp || Date.now();
+    this._errorMessage = errorMessage ?? null;
   }
 
   static createSuccess(user: User | IUserObject): UnfollowLogEntry {
     return new UnfollowLogEntry(user, true);
   }
 
-  static createFailure(user: User | IUserObject): UnfollowLogEntry {
-    return new UnfollowLogEntry(user, false);
+  static createFailure(user: User | IUserObject, errorMessage: string | null = null): UnfollowLogEntry {
+    return new UnfollowLogEntry(user, false, undefined, errorMessage);
   }
 
   private _validate(user: unknown, unfollowedSuccessfully: unknown): void {
@@ -51,15 +53,21 @@ export class UnfollowLogEntry {
     return this._timestamp;
   }
 
+  getErrorMessage(): string | null {
+    return this._errorMessage;
+  }
+
   toObject(): {
     user: ReturnType<User['toObject']>;
     unfollowedSuccessfully: boolean;
     timestamp: number;
+    errorMessage: string | null;
   } {
     return {
       user: this._user.toObject(),
       unfollowedSuccessfully: this._unfollowedSuccessfully,
-      timestamp: this._timestamp
+      timestamp: this._timestamp,
+      errorMessage: this._errorMessage
     };
   }
 
@@ -68,6 +76,7 @@ export class UnfollowLogEntry {
       return false;
     }
     return this._user.equals(other._user) &&
-           this._unfollowedSuccessfully === other._unfollowedSuccessfully;
+           this._unfollowedSuccessfully === other._unfollowedSuccessfully &&
+           this._errorMessage === other._errorMessage;
   }
 }

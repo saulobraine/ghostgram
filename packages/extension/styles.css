@@ -1390,10 +1390,6 @@ html .iu button.unfollow {
   transform: scale(1.05) !important;
 }
 
-.iu-toggle-button span {
-  font-size: 28px !important;
-  line-height: 1 !important;
-}
 
 .iu-badge {
   position: absolute !important;
@@ -1405,7 +1401,7 @@ html .iu button.unfollow {
   background: linear-gradient(135deg, #e1306c 0%, #c13584 100%) !important;
   color: #fff !important;
   border-radius: 8px !important;
-  font-size: 9px !important;
+  font-size: .75em !important;
   font-weight: bold !important;
   display: flex !important;
   align-items: center !important;
@@ -1960,7 +1956,7 @@ html .iu button.unfollow {
 }
 
 .iu-stealth-mode .iu-badge {
-  font-size: 9px !important;
+  font-size: .75em !important;
   min-width: 14px !important;
   height: 14px !important;
   padding: 0 4px !important;
@@ -2075,6 +2071,16 @@ html .iu button.unfollow {
   overflow: hidden !important;
   animation: iu-scaleIn 0.3s ease !important;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5) !important;
+  transition: opacity 0.2s ease, filter 0.2s ease, transform 0.2s ease !important;
+}
+
+.iu-unfollow-modal-overlay-paused .iu-unfollow-modal {
+  opacity: 0.82 !important;
+  filter: saturate(0.8) !important;
+}
+
+.iu-unfollow-modal-overlay-paused .iu-unfollow-modal-bar-fill {
+  animation-play-state: paused !important;
 }
 
 .iu-unfollow-modal-header {
@@ -2134,12 +2140,53 @@ html .iu button.unfollow {
   font-weight: 600 !important;
 }
 
-.iu-unfollow-modal-list {
+.iu-unfollow-modal-list-container {
+  position: relative !important;
   flex: 1 !important;
-  overflow-y: auto !important;
-  padding: 0 20px 10px !important;
   min-height: 80px !important;
   max-height: 45vh !important;
+}
+
+.iu-unfollow-modal-pause-state {
+  position: absolute !important;
+  inset: 0 20px 10px !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px 18px !important;
+  border-radius: 12px !important;
+  background: rgba(17, 17, 17, 0.88) !important;
+  border: 1px solid rgba(252, 175, 69, 0.22) !important;
+  backdrop-filter: blur(6px) !important;
+  text-align: center !important;
+}
+
+.iu-unfollow-modal-pause-countdown {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #f4f4f5 !important;
+}
+
+.iu-unfollow-modal-pause-reason {
+  margin: 6px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #d4d4d8 !important;
+}
+
+.iu-unfollow-modal-list {
+  height: 100% !important;
+  overflow-y: auto !important;
+  padding: 0 20px 10px !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.iu-unfollow-modal-overlay-paused .iu-unfollow-modal-list,
+.iu-unfollow-modal-overlay-paused .iu-unfollow-modal-warning,
+.iu-unfollow-modal-overlay-paused .iu-unfollow-modal-status-line {
+  opacity: 0.75 !important;
 }
 
 .iu-unfollow-modal-item {
@@ -2219,4 +2266,59 @@ html .iu button.unfollow {
   background: linear-gradient(135deg, #833ab4, #e1306c) !important;
   color: #fff !important;
   padding: 8px 28px !important;
+}
+
+.iu-follow-confirmation {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 220px !important;
+  max-width: 320px !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  background: rgba(17, 17, 17, 0.96) !important;
+  border: 1px solid rgba(252, 175, 69, 0.25) !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32) !important;
+}
+
+.iu-follow-confirmation-text {
+  margin: 0 !important;
+  font-family: "Noto Sans", sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #f4f4f5 !important;
+  text-align: center !important;
+}
+
+.iu-follow-confirmation-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: center !important;
+}
+
+.iu-follow-confirmation-btn {
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 8px 14px !important;
+  font-family: "Noto Sans", sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.iu-follow-confirmation-btn:hover {
+  opacity: 0.9 !important;
+}
+
+.iu-follow-confirmation-btn-confirm {
+  color: #fff !important;
+  background: linear-gradient(135deg, #833ab4, #e1306c) !important;
+}
+
+.iu-follow-confirmation-btn-cancel {
+  color: #f4f4f5 !important;
+  background: #27272a !important;
 }

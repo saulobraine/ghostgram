@@ -2,7 +2,6 @@ import { describe, it, expect } from '@jest/globals';
 import { Settings } from '../../../src/domain/Settings.js';
 import { DEFAULT_SETTINGS } from '../../../src/constants/Constants.js';
 
-// Helper para criar Settings com todos os 10 parâmetros
 function createSettings(overrides = {}) {
   const d = DEFAULT_SETTINGS;
   const has = (k) => Object.prototype.hasOwnProperty.call(overrides, k);
@@ -13,6 +12,7 @@ function createSettings(overrides = {}) {
     has('timeToWaitAfterFiveUnfollows') ? overrides.timeToWaitAfterFiveUnfollows : 300000,
     has('successMessageDuration') ? overrides.successMessageDuration : d.successMessageDuration,
     has('unfollowersPerPage') ? overrides.unfollowersPerPage : d.unfollowersPerPage,
+    has('unfollowsPerCycle') ? overrides.unfollowsPerCycle : d.unfollowsPerCycle,
     has('withoutProfilePictureUrlIds') ? overrides.withoutProfilePictureUrlIds : [...d.withoutProfilePictureUrlIds],
     has('instagramGraphqlQueryHash') ? overrides.instagramGraphqlQueryHash : d.instagramGraphqlQueryHash,
     has('instagramGraphqlBaseUrl') ? overrides.instagramGraphqlBaseUrl : d.instagramGraphqlBaseUrl,
@@ -34,6 +34,18 @@ describe('Settings', () => {
       expect(() => createSettings({ timeBetweenSearchCycles: -1 })).toThrow();
       expect(() => createSettings({ timeToWaitAfterFiveSearchCycles: 0 })).toThrow();
       expect(() => createSettings({ timeBetweenUnfollows: null })).toThrow();
+    });
+
+    it('should reject invalid graphql query hash', () => {
+      expect(() => createSettings({ instagramGraphqlQueryHash: 'not-valid' })).toThrow('instagramGraphqlQueryHash inválido');
+    });
+
+    it('should reject graphql url outside instagram allowlist', () => {
+      expect(() => createSettings({ instagramGraphqlBaseUrl: 'https://evil.example/graphql/query/' })).toThrow('instagramGraphqlBaseUrl deve usar www.instagram.com');
+    });
+
+    it('should reject unfollow url with unexpected path', () => {
+      expect(() => createSettings({ instagramUnfollowBaseUrl: 'https://www.instagram.com/web/evil/' })).toThrow('instagramUnfollowBaseUrl deve usar o caminho /web/friendships/');
     });
   });
 
@@ -108,4 +120,3 @@ describe('Settings', () => {
     });
   });
 });
-

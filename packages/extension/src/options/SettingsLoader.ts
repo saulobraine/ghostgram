@@ -36,6 +36,8 @@ export class SettingsLoader {
       settings.getSuccessMessageDuration(), formElement);
     this._setInputValue(SETTINGS_KEYS.UNFOLLOWERS_PER_PAGE,
       settings.getUnfollowersPerPage(), formElement);
+    this._setInputValue(SETTINGS_KEYS.UNFOLLOWS_PER_CYCLE,
+      settings.getUnfollowsPerCycle(), formElement);
     this._setInputValue(SETTINGS_KEYS.WITHOUT_PROFILE_PICTURE_URL_IDS,
       settings.getWithoutProfilePictureUrlIds().join(', '), formElement);
     this._setInputValue(SETTINGS_KEYS.INSTAGRAM_GRAPHQL_QUERY_HASH,

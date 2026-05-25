@@ -101,6 +101,13 @@ async function showOnInstagram(): Promise<void> {
   settingsBtn.innerHTML = '<span class="popup-actions__btn-icon">⚠️</span><span>Configurações Avançadas</span>';
   actionsSection.appendChild(settingsBtn);
 
+  const historyLink = document.createElement('a');
+  historyLink.href = 'history.html';
+  historyLink.target = '_blank';
+  historyLink.className = 'popup-actions__link';
+  historyLink.innerHTML = '<span class="popup-actions__link-icon">📊</span><span>Ver Histórico</span>';
+  actionsSection.appendChild(historyLink);
+
   const clearScansBtn = document.createElement('button');
   clearScansBtn.type = 'button';
   clearScansBtn.className = 'popup-actions__btn popup-actions__btn--danger';

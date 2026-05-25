@@ -62,22 +62,47 @@ export class InstagramApiClient {
   async unfollowUser(settings: Settings, userId: string): Promise<boolean> {
     const csrfToken = CookieHelper.getCsrfToken();
     if (!csrfToken) {
-      throw new Error('CSRF token not found');
+      throw new Error('CSRF token not found. Make sure you are logged in to Instagram.');
+    }
+
+    const rolloutHash = CookieHelper.getRolloutHash();
+    const headers: Record<string, string> = {
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-csrftoken': csrfToken,
+      'x-requested-with': 'XMLHttpRequest',
+      'x-ig-app-id': '936619743392459'
+    };
+
+    if (rolloutHash) {
+      headers['x-instagram-ajax'] = rolloutHash;
+    } else {
+      console.warn('[InstagramApiClient] Rollout hash not found. Proceeding without x-instagram-ajax header. This may cause request rejection.');
     }
 
     const url = UrlGenerator.generateUnfollowUrl(settings, userId);
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-        'x-csrftoken': csrfToken
-      },
-      mode: 'cors',
+      headers,
+      mode: 'same-origin',
       credentials: 'include'
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to unfollow user: ${response.status}`);
+      const errorBody = await response.text().catch(() => '');
+      throw new Error(`Failed to unfollow user ${userId}: ${response.status} ${response.statusText}. Body: ${errorBody.substring(0, 200)}`);
+    }
+
+    // Valida se a resposta contém indicador de sucesso
+    try {
+      const responseData = await response.json();
+      // Instagram geralmente retorna {status: 'ok'} ou similar
+      if (responseData.status !== 'ok' && responseData.status !== 'success') {
+        console.warn('[InstagramApiClient] Unfollow response status not ok:', responseData);
+        // Não lança erro, pois 200 OK geralmente significa sucesso mesmo sem status explícito
+      }
+    } catch (e) {
+      // Se não for JSON, é okay (algumas respostas são vazias)
+      console.log('[InstagramApiClient] Unfollow response is not JSON (likely empty)');
     }
 
     return true;
