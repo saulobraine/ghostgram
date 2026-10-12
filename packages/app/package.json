@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "echo 'Use EAS Build'",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },

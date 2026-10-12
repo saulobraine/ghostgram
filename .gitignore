@@ -66,3 +66,7 @@ web-build/
 .cursor/
 .agent/
 .github/
+.claude/
+*.ps1
+screenshot*.png
+ghostgram_window.png
