@@ -1601,6 +1601,20 @@ html .iu button.unfollow {
   transform: translateY(-2px) !important;
 }
 
+.iu-button-danger:disabled,
+.iu-button-blocked {
+  background: #333 !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.iu-button-blocked:hover {
+  transform: none !important;
+}
+
 .iu-button-small {
   padding: 8px 12px !important;
   font-size: 12px !important;
@@ -2046,17 +2060,88 @@ html .iu button.unfollow {
   }
 }
 
+@keyframes iu-modal-morph-to-mini {
+  0% {
+    transform: translate(0, 0);
+    width: 90vw;
+    max-width: 480px;
+    max-height: 80vh;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    opacity: 1;
+  }
+  35% {
+    max-height: 85px;
+    width: var(--target-width, 320px);
+    border-radius: 12px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  }
+  90% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(var(--morph-x, calc(50vw - 184px)), var(--morph-y, calc(54px - 50vh)));
+    width: var(--target-width, 320px);
+    max-height: var(--target-height, 62px);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes iu-modal-morph-from-mini {
+  0% {
+    transform: translate(var(--morph-x, calc(50vw - 184px)), var(--morph-y, calc(54px - 50vh)));
+    width: var(--target-width, 320px);
+    max-height: var(--target-height, 62px);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    opacity: 0.95;
+  }
+  60% {
+    transform: translate(0, 0);
+    width: 90vw;
+    max-width: 480px;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0);
+    width: 90vw;
+    max-width: 480px;
+    max-height: 80vh;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    opacity: 1;
+  }
+}
+
 .iu-unfollow-modal-overlay {
   position: fixed !important;
   inset: 0 !important;
   z-index: 10001 !important;
   background: rgba(0, 0, 0, 0.7) !important;
   backdrop-filter: blur(4px) !important;
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: center !important;
   animation: iu-fadeIn 0.25s ease !important;
   font-family: "Noto Sans", sans-serif !important;
+}
+
+.iu-unfollow-modal-overlay.iu-hidden,
+.iu-unfollow-modal-overlay[style*="display: none"],
+.iu-unfollow-modal-overlay[style*="display:none"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.iu-unfollow-modal.iu-hidden {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 .iu-unfollow-modal {
@@ -2095,6 +2180,199 @@ html .iu button.unfollow {
   font-size: 17px !important;
   font-weight: 700 !important;
   color: #f4f4f5 !important;
+}
+
+.iu-unfollow-modal-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.iu-unfollow-modal-btn-minimize {
+  background: transparent !important;
+  border: none !important;
+  color: #a1a1aa !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
+  line-height: 1 !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+}
+
+.iu-unfollow-modal-btn-minimize:hover {
+  color: #f4f4f5 !important;
+  background: #27272a !important;
+}
+
+.iu-overlay-minimizing {
+  background: rgba(0, 0, 0, 0) !important;
+  backdrop-filter: blur(0px) !important;
+  -webkit-backdrop-filter: blur(0px) !important;
+  pointer-events: none !important;
+  transition: background 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              backdrop-filter 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              -webkit-backdrop-filter 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.iu-overlay-maximizing {
+  animation: iu-fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+.iu-modal-morph-to-mini {
+  animation: iu-modal-morph-to-mini 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  transform-origin: center center !important;
+}
+
+.iu-modal-morph-to-mini .iu-unfollow-modal-list-container,
+.iu-modal-morph-to-mini .iu-unfollow-modal-warning,
+.iu-modal-morph-to-mini .iu-unfollow-modal-footer,
+.iu-modal-morph-to-mini .iu-unfollow-modal-status-line,
+.iu-modal-morph-to-mini .iu-unfollow-modal-pause-state {
+  opacity: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 0.12s ease-out, max-height 0.24s cubic-bezier(0.16, 1, 0.3, 1), margin 0.2s ease, padding 0.2s ease !important;
+}
+
+.iu-modal-morph-to-mini .iu-unfollow-modal-header {
+  padding: 10px 14px 4px !important;
+  transition: padding 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.iu-modal-morph-to-mini .iu-unfollow-modal-header h2 {
+  font-size: 12px !important;
+  transition: font-size 0.2s ease !important;
+}
+
+.iu-modal-morph-to-mini .iu-unfollow-modal-pct {
+  font-size: 12px !important;
+  transition: font-size 0.2s ease !important;
+}
+
+.iu-modal-morph-to-mini .iu-unfollow-modal-bar {
+  margin: 4px 14px 10px !important;
+  height: 4px !important;
+  transition: margin 0.24s cubic-bezier(0.16, 1, 0.3, 1), height 0.24s ease !important;
+}
+
+.iu-modal-morph-from-mini {
+  animation: iu-modal-morph-from-mini 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  overflow: hidden !important;
+  transform-origin: center center !important;
+}
+
+.iu-modal-morph-from-mini .iu-unfollow-modal-list-container,
+.iu-modal-morph-from-mini .iu-unfollow-modal-warning,
+.iu-modal-morph-from-mini .iu-unfollow-modal-footer,
+.iu-modal-morph-from-mini .iu-unfollow-modal-status-line,
+.iu-modal-morph-from-mini .iu-unfollow-modal-pause-state {
+  animation: iu-fadeIn 0.25s 0.12s ease-out both !important;
+}
+
+.iu-unfollow-mini-widget {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: auto !important;
+  width: 320px !important;
+  background: #111111 !important;
+  border: 1px solid #27272a !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6) !important;
+  font-family: "Noto Sans", system-ui, sans-serif !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, border-color 0.15s ease !important;
+}
+
+.iu-unfollow-mini-widget:hover {
+  border-color: #3f3f46 !important;
+  transform: translateY(-2px) !important;
+}
+
+.iu-unfollow-mini-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.iu-unfollow-mini-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+}
+
+.iu-unfollow-mini-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #f4f4f5 !important;
+  white-space: nowrap !important;
+}
+
+.iu-unfollow-mini-pct {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #833ab4, #e1306c, #fcaf45) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.iu-unfollow-mini-count {
+  font-size: 11px !important;
+  color: #a1a1aa !important;
+}
+
+.iu-unfollow-mini-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.iu-unfollow-mini-btn {
+  background: #27272a !important;
+  color: #f4f4f5 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: opacity 0.15s ease, background 0.15s ease !important;
+}
+
+.iu-unfollow-mini-btn:hover {
+  opacity: 0.85 !important;
+  background: #3f3f46 !important;
+}
+
+.iu-unfollow-mini-bar {
+  height: 4px !important;
+  background: #1a1a1a !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+.iu-unfollow-mini-bar-fill {
+  height: 100% !important;
+  border-radius: 2px !important;
+  background: linear-gradient(90deg, #833ab4, #e1306c, #fcaf45) !important;
+  transition: width 0.3s ease !important;
+}
+
+.iu-unfollow-mini-pause-reason {
+  font-size: 11px !important;
+  color: #fcaf45 !important;
+  text-align: center !important;
 }
 
 .iu-unfollow-modal-pct {
@@ -2142,25 +2420,30 @@ html .iu button.unfollow {
 
 .iu-unfollow-modal-list-container {
   position: relative !important;
-  flex: 1 !important;
-  min-height: 80px !important;
+  flex: 1 1 auto !important;
+  min-height: 100px !important;
   max-height: 45vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 .iu-unfollow-modal-pause-state {
   position: absolute !important;
   inset: 0 20px 10px !important;
-  z-index: 2 !important;
+  z-index: 10 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 16px 18px !important;
   border-radius: 12px !important;
-  background: rgba(17, 17, 17, 0.88) !important;
-  border: 1px solid rgba(252, 175, 69, 0.22) !important;
-  backdrop-filter: blur(6px) !important;
+  background: rgba(17, 17, 17, 0.92) !important;
+  border: 1px solid rgba(252, 175, 69, 0.28) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   text-align: center !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
 .iu-unfollow-modal-pause-countdown {
@@ -2177,10 +2460,35 @@ html .iu button.unfollow {
 }
 
 .iu-unfollow-modal-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   height: 100% !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
   padding: 0 20px 10px !important;
   transition: opacity 0.2s ease !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #3f3f46 transparent !important;
+}
+
+.iu-unfollow-modal-list::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.iu-unfollow-modal-list::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.iu-unfollow-modal-list::-webkit-scrollbar-thumb {
+  background: #3f3f46 !important;
+  border-radius: 3px !important;
+}
+
+.iu-unfollow-modal-list::-webkit-scrollbar-thumb:hover {
+  background: #52525b !important;
 }
 
 .iu-unfollow-modal-overlay-paused .iu-unfollow-modal-list,
@@ -2235,6 +2543,11 @@ html .iu button.unfollow {
   gap: 10px !important;
   padding: 12px 20px 16px !important;
   justify-content: center !important;
+  flex-shrink: 0 !important;
+  background: #111 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 .iu-unfollow-modal-btn {
@@ -2321,4 +2634,67 @@ html .iu button.unfollow {
 .iu-follow-confirmation-btn-cancel {
   color: #f4f4f5 !important;
   background: #27272a !important;
+}
+
+/* Feedback / Alert de Checkpoint e Erro no Painel Flutuante */
+.iu-scan-alert {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  margin-bottom: 14px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box !important;
+}
+
+.iu-scan-alert-checkpoint {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  color: #fbbf24 !important;
+}
+
+.iu-scan-alert-error {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+  color: #f87171 !important;
+}
+
+.iu-scan-alert-icon {
+  font-size: 16px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  margin-top: 1px !important;
+}
+
+.iu-scan-alert-content {
+  flex: 1 !important;
+}
+
+.iu-scan-alert-title {
+  display: block !important;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+  color: #fff !important;
+  font-size: 13px !important;
+}
+
+.iu-scan-alert-msg {
+  margin: 0 !important;
+  color: #e4e4e7 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.iu-scan-alert-cooldown-badge {
+  display: inline-block !important;
+  margin-top: 8px !important;
+  padding: 3px 8px !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+  color: #f59e0b !important;
+  font-size: 11px !important;
 }

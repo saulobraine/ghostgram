@@ -10,14 +10,23 @@ export class CookieHelper {
    * @returns Valor do cookie ou null se não encontrado
    */
   static getCookie(name: string): string | null {
-    const cookies = `; ${document.cookie}`;
-    const parts = cookies.split(`; ${name}=`);
-
-    if (parts.length !== 2) {
+    if (typeof document === 'undefined' || !document.cookie) {
       return null;
     }
 
-    return parts.pop()?.split(';').shift() || null;
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    }
+
+    const cookies = `; ${document.cookie}`;
+    const parts = cookies.split(`; ${name}=`);
+
+    if (parts.length >= 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+
+    return null;
   }
 
   /**

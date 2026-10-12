@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "description": "GhostGram - ferramenta para encontrar e deixar de seguir não seguidores no Instagram",
   "permissions": ["storage"],
-  "host_permissions": ["https://www.instagram.com/*"],
+  "host_permissions": ["*://*.instagram.com/*"],
   "content_scripts": [
     {
-      "matches": ["https://www.instagram.com/*"],
+      "matches": ["*://*.instagram.com/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"
@@ -41,7 +41,7 @@
         "icons/icon128.png",
         "src/**/*.js"
       ],
-      "matches": ["https://www.instagram.com/*"]
+      "matches": ["*://*.instagram.com/*"]
     }
   ]
 }

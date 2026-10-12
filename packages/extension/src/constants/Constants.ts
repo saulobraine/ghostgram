@@ -17,8 +17,14 @@ export const STORAGE_KEYS = {
   SCAN_PERSISTENCE: 'ghostgram_scan_persistence',
   ACTIONS_HISTORY: 'ghostgram_actions_history',
   SCAN_HISTORY: 'ghostgram_scan_history',
-  FOLLOW_COOLDOWN_HOURS: 'ghostgram_follow_cooldown_hours'
+  FOLLOW_COOLDOWN_HOURS: 'ghostgram_follow_cooldown_hours',
+  UNFOLLOW_BLOCK_UNTIL: 'ghostgram_unfollow_block_until',
+  SCAN_BLOCK_UNTIL: 'ghostgram_scan_block_until',
+  SCAN_LAST_ERROR: 'ghostgram_scan_last_error'
 } as const;
+
+export const UNFOLLOW_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 horas
+export const SCAN_CHECKPOINT_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutos (proteção pós-checkpoint)
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 
@@ -80,9 +86,9 @@ export type ScanStatusType = typeof SCAN_STATUS[keyof typeof SCAN_STATUS];
 
 export const DEFAULT_SETTINGS = {
   timeBetweenSearchCycles: 1000,
-  timeToWaitAfterFiveSearchCycles: 20000,
-  timeBetweenUnfollows: 7000,
-  timeToWaitAfterFiveUnfollows: 600000,
+  timeToWaitAfterFiveSearchCycles: 10000,
+  timeBetweenUnfollows: 4000,
+  timeToWaitAfterFiveUnfollows: 300000,
   successMessageDuration: 3000,
   unfollowersPerPage: 50,
   unfollowsPerCycle: 5,
@@ -125,3 +131,7 @@ export const WITHOUT_PROFILE_PICTURE_URL_IDS = [
 export const INSTAGRAM_GRAPHQL_QUERY_HASH = '3dec7e2c57367ef3da3d987d89f9dbc8' as const;
 export const INSTAGRAM_GRAPHQL_BASE_URL = 'https://www.instagram.com/graphql/query/' as const;
 export const INSTAGRAM_UNFOLLOW_BASE_URL = 'https://www.instagram.com/web/friendships/' as const;
+export const INSTAGRAM_WEB_APP_ID = '936619743392459' as const;
+export const FOLLOWING_PAGE_SAFETY_LIMIT = 60 as const;
+export const FOLLOWERS_PAGE_SAFETY_LIMIT = 250 as const;
+export const DEFAULT_USERS_PER_SEARCH_CYCLE = 50 as const;

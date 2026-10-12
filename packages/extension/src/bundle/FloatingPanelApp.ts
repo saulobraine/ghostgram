@@ -13,7 +13,7 @@ import { User } from './domain/User.js';
 import { Settings } from '../domain/Settings.js';
 import { SyncStorageAdapter } from '../storage/SyncStorageAdapter.js';
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter.js';
-import { STORAGE_KEYS, DEFAULT_QUICK_SETTINGS, MESSAGE_ACTIONS, MESSAGE_TYPES, ACTION_TYPES } from '../constants/Constants.js';
+import { STORAGE_KEYS, DEFAULT_QUICK_SETTINGS, MESSAGE_ACTIONS, MESSAGE_TYPES, ACTION_TYPES, UNFOLLOW_COOLDOWN_MS, SCAN_CHECKPOINT_COOLDOWN_MS } from '../constants/Constants.js';
 import type { UnfollowLogEntry } from './domain/UnfollowLogEntry.js';
 
 interface ScanResumeOptions {
@@ -69,6 +69,9 @@ interface AppState {
   searchQuery: string;
   unfollowLog: UnfollowLogEntry[];
   scanHistory: ScanRecord[];
+  unfollowBlockUntil: number | null;
+  scanBlockUntil: number | null;
+  scanErrorMessage: string | null;
 }
 
 /**
@@ -93,6 +96,7 @@ export class FloatingPanelApp {
   private _currentScanResults: User[] | null | undefined;
   private _currentScanProcessedCount: number | undefined;
   private _currentScanTotalCount: number | undefined;
+  private _cooldownTimer: number | null;
 
   constructor() {
     this._container = null;
@@ -101,6 +105,7 @@ export class FloatingPanelApp {
     this._settings = Settings.createDefault();
     this._storage = new SyncStorageAdapter();
     this._localStorage = new LocalStorageAdapter();
+    this._cooldownTimer = null;
 
     // Inicia monitoramento de cliques manuais
     followMonitor.start();
@@ -122,7 +127,10 @@ export class FloatingPanelApp {
       activeTab: 'nonFollowers',
       searchQuery: '',
       unfollowLog: [],
-      scanHistory: []
+      scanHistory: [],
+      unfollowBlockUntil: null,
+      scanBlockUntil: null,
+      scanErrorMessage: null
     };
 
     // Configurações rápidas do popup
@@ -146,6 +154,8 @@ export class FloatingPanelApp {
     await this._loadQuickSettings();
     await this._loadScanHistory();
     await this._loadWhitelist();
+    await this._loadUnfollowCooldown();
+    await this._loadScanCooldown();
     this._setupSettingsChangeListener();
     this._render();
     this._setupMessageListener();
@@ -209,6 +219,24 @@ export class FloatingPanelApp {
    */
   private _setupSettingsChangeListener(): void {
     chrome.runtime.onMessage.addListener((message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+      if (message.action === 'resetUnfollowCooldown') {
+        this._state.unfollowBlockUntil = null;
+        this._localStorage.remove(STORAGE_KEYS.UNFOLLOW_BLOCK_UNTIL).catch(() => {});
+        this._update();
+        sendResponse({ success: true });
+        return;
+      }
+
+      if (message.action === 'resetScanCooldown') {
+        this._state.scanBlockUntil = null;
+        this._state.scanErrorMessage = null;
+        this._localStorage.remove(STORAGE_KEYS.SCAN_BLOCK_UNTIL).catch(() => {});
+        this._localStorage.remove(STORAGE_KEYS.SCAN_LAST_ERROR).catch(() => {});
+        this._update();
+        sendResponse({ success: true });
+        return;
+      }
+
       if (message.action !== 'settingsChanged') {
         return;
       }
@@ -292,7 +320,21 @@ export class FloatingPanelApp {
    */
   private _setupMessageListener(): void {
     window.addEventListener('message', (event: MessageEvent) => {
-      if (event.data?.type === MESSAGE_TYPES.INSTAGRAM_UNFOLLOWERS_START_SCAN) {
+      // Ignora mensagens de outras origens
+      if (event.source !== window) return;
+
+      const data = event.data as { type?: string; action?: string; success?: boolean; error?: string };
+
+      // Mensagens do background de volta para o app
+      if (data?.type === 'GHOSTGRAM_FROM_BACKGROUND') {
+        console.log('[FloatingPanelApp] Resposta do background:', data.action, data.success);
+        if (data.action === MESSAGE_ACTIONS.OPEN_HISTORY && data.success) {
+          console.log('[FloatingPanelApp] Histórico aberto com sucesso');
+        }
+        return;
+      }
+
+      if (data?.type === MESSAGE_TYPES.INSTAGRAM_UNFOLLOWERS_START_SCAN) {
         this._handleStartScan();
       }
     });
@@ -306,6 +348,14 @@ export class FloatingPanelApp {
       return;
     }
 
+    if (this._isScanCooldownActive()) {
+      const remaining = this._formatRemainingCooldown(this._state.scanBlockUntil!);
+      this._state.scanErrorMessage = `Intervalo de proteção ativo. Aguarde ${remaining} antes de iniciar um novo scan para proteger sua conta.`;
+      this._update();
+      return;
+    }
+
+    this._state.scanErrorMessage = null;
     const isResumed = options.isResumed || false;
 
     // Cache cooldown filter data before scan starts
@@ -321,8 +371,10 @@ export class FloatingPanelApp {
       this._state.selectedUsers.clear();
       this._state.isExpanded = true;
     } else {
-      // Se for retomado, inicializa com os dados salvos (com filtro cooldown)
-      let resumed = (options.results || []).filter(user => !user.followsViewer());
+      // Se for retomado, inicializa com os dados salvos (com filtro cooldown e deduplicação)
+      let resumed = this._deduplicateUsers(
+        (options.results || []).filter(user => !user.followsViewer())
+      );
       if (this._cooldownUsernames && this._cooldownUsernames.size > 0) {
         resumed = resumed.filter(u => !this._cooldownUsernames!.has(u.getUsername()));
       }
@@ -350,7 +402,9 @@ export class FloatingPanelApp {
 
       // Se foi cancelado, não atualiza estado final
       if (this._state.isScanning) {
-        let nonFollowers = allFollowing.filter(user => !user.followsViewer());
+        let nonFollowers = this._deduplicateUsers(
+          allFollowing.filter(user => !user.followsViewer())
+        );
         nonFollowers = await this._applyFollowCooldownFilter(nonFollowers);
         this._state.nonFollowers = nonFollowers;
         this._state.isScanCompleted = true;
@@ -363,9 +417,23 @@ export class FloatingPanelApp {
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no scan:', error);
       this._state.isScanning = false;
-      // Em caso de erro, talvez não devêssemos limpar a persistência para permitir nova tentativa?
-      // Por enquanto limpamos para evitar loop de erro
+      this._state.isPaused = false;
       await this._clearScanPersistence();
+
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const lower = errorMsg.toLowerCase();
+      const isSecurityOrLimit =
+        lower.includes('checkpoint') ||
+        lower.includes('verificação de segurança') ||
+        lower.includes('challenge') ||
+        lower.includes('bloqueio temporário') ||
+        lower.includes('429');
+
+      if (isSecurityOrLimit) {
+        await this._setScanCooldown(SCAN_CHECKPOINT_COOLDOWN_MS, errorMsg);
+      } else {
+        this._state.scanErrorMessage = errorMsg;
+      }
     }
 
     this._state.isPaused = false;
@@ -415,17 +483,19 @@ export class FloatingPanelApp {
    */
   private _onScanProgress(percentage: number, results: User[], cursor: string | null, processedCount: number, totalCount: number): void {
     this._state.scanProgress = percentage;
-    // Atualiza contagem parcial de não-seguidores (aplica cooldown filter com cache)
-    let nonFollowers = results.filter(user => !user.followsViewer());
+    // Atualiza contagem parcial de não-seguidores (aplica cooldown filter com cache e deduplicação)
+    let nonFollowers = this._deduplicateUsers(
+      results.filter(user => !user.followsViewer())
+    );
     if (this._cooldownUsernames && this._cooldownUsernames.size > 0) {
       nonFollowers = nonFollowers.filter(u => !this._cooldownUsernames!.has(u.getUsername()));
     }
     this._state.nonFollowers = nonFollowers;
     this._update();
 
-    // Salva persistência
+    // Salva persistência (garante resultados únicos)
     this._currentScanCursor = cursor;
-    this._currentScanResults = results;
+    this._currentScanResults = this._deduplicateUsers(results);
     this._currentScanProcessedCount = processedCount;
     this._currentScanTotalCount = totalCount;
     this._saveScanPersistence();
@@ -473,6 +543,13 @@ export class FloatingPanelApp {
    * Inicia o processo de unfollow
    */
   private async _handleStartUnfollow(): Promise<void> {
+    await this._loadUnfollowCooldown();
+    if (this._isUnfollowCooldownActive()) {
+      const remainingText = this._formatRemainingCooldown(this._state.unfollowBlockUntil!);
+      alert(`Ação de unfollow bloqueada temporariamente para proteger sua conta contra bloqueios do Instagram.\n\nTempo restante de cooldown: ${remainingText}.`);
+      return;
+    }
+
     if (this._state.isUnfollowing || this._state.selectedUsers.size === 0) {
       console.warn('[FloatingPanelApp] Cannot start unfollow: already unfollowing or no users selected');
       return;
@@ -543,6 +620,17 @@ export class FloatingPanelApp {
       this._state.isUnfollowing = false;
       this._state.unfollowProgress = 100;
 
+      // Remove usuários que foram unfollowed da lista com sucesso
+      const unfollowedIds = new Set(log.filter(e => e.wasSuccessful()).map(e => e.getUser().getId()));
+      if (unfollowedIds.size > 0) {
+        const removedCount = this._state.nonFollowers.filter(user => unfollowedIds.has(user.getId())).length;
+        this._state.nonFollowers = this._state.nonFollowers.filter(
+          user => !unfollowedIds.has(user.getId())
+        );
+        this._state.selectedUsers.clear();
+        console.log(`[FloatingPanelApp] ${removedCount} usuários removidos da lista de não-seguidores.`);
+      }
+
       // Verificar se houve alguma falha
       const hasFailures = log.some(entry => entry.wasFailure());
 
@@ -564,27 +652,24 @@ export class FloatingPanelApp {
         const firstFailure = log.find(entry => entry.wasFailure());
         const errorMsg = firstFailure ? firstFailure.getErrorMessage() : 'Erro desconhecido';
 
-        // Informar o usuário sobre o erro e sugerir verificar configurações se previamente alteradas
-        alert(`Não foi possível concluir o unfollow: ${errorMsg}\n\nVerifique suas configurações, especialmente o intervalo entre unfollows e o limite de ações por ciclo, se você as alterou previamente.`);
-      } else {
-        // Todas as ações foram bem-sucedidas
-        this._state.isUnfollowModalOpen = true;
-        // Show completion in modal
-        if (this._unfollowModal) {
-          this._unfollowModal.complete(log);
+        if (this._is400Error(errorMsg)) {
+          await this._setUnfollowCooldown();
         }
 
-        // Remove usuários que foram unfollowed da lista
-        const unfollowedIds = new Set(log.filter(e => e.wasSuccessful()).map(e => e.getUser().getId()));
-        const removedCount = this._state.nonFollowers.filter(user => unfollowedIds.has(user.getId())).length;
-        this._state.nonFollowers = this._state.nonFollowers.filter(
-          user => !unfollowedIds.has(user.getId())
-        );
-        this._state.selectedUsers.clear();
-
-        const successCount = log.filter(e => e.wasSuccessful()).length;
-        console.log(`[FloatingPanelApp] Unfollow concluído. ${successCount}/${usersToUnfollow.length} unfollows bem-sucedidos. ${removedCount} usuários removidos da lista.`);
+        alert(this._getUnfollowErrorMessage(errorMsg));
+        this._update();
+        return;
       }
+
+      // Todas as ações foram bem-sucedidas
+      this._state.isUnfollowModalOpen = true;
+      // Show completion in modal
+      if (this._unfollowModal) {
+        this._unfollowModal.complete(log);
+      }
+
+      const successCount = log.filter(e => e.wasSuccessful()).length;
+      console.log(`[FloatingPanelApp] Unfollow concluído. ${successCount}/${usersToUnfollow.length} unfollows bem-sucedidos.`);
     } catch (error) {
       console.error('[FloatingPanelApp] Erro no unfollow:', error);
       this._state.isUnfollowing = false;
@@ -598,12 +683,193 @@ export class FloatingPanelApp {
         this._unfollowModal.destroy();
         this._unfollowModal = null;
       }
-      // Informar o usuário sobre o erro e sugerir verificar configurações se previamente alteradas
+      // Informar o usuário sobre o erro
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-      alert(`Não foi possível concluir o unfollow: ${errorMsg}\n\nVerifique suas configurações, especialmente o intervalo entre unfollows e o limite de ações por ciclo, se você as alterou previamente.`);
+      if (this._is400Error(errorMsg)) {
+        await this._setUnfollowCooldown();
+      }
+      alert(this._getUnfollowErrorMessage(errorMsg));
     }
 
     this._update();
+  }
+
+  private _is400Error(errorMsg?: string | null): boolean {
+    if (!errorMsg) return false;
+    const lower = errorMsg.toLowerCase();
+    return lower.includes('400') || lower.includes('próximo dia') || lower.includes('bad request');
+  }
+
+  private _getUnfollowErrorMessage(errorMsg?: string | null): string {
+    if (this._is400Error(errorMsg)) {
+      return 'Não foi possível concluir o unfollow: O Instagram retornou o erro 400 (limite temporário atingido).\n\nPara evitar o bloqueio da sua conta, um cooldown de 24h foi ativado. Você poderá deixar de seguir novamente amanhã.';
+    }
+    return `Não foi possível concluir o unfollow: ${errorMsg || 'Erro desconhecido'}\n\nVerifique suas configurações, especialmente o intervalo entre unfollows e o limite de ações por ciclo, se você as alterou previamente.`;
+  }
+
+  /**
+   * Carrega o timestamp de cooldown de unfollow
+   */
+  private async _loadUnfollowCooldown(): Promise<void> {
+    try {
+      const stored = await this._localStorage.get(STORAGE_KEYS.UNFOLLOW_BLOCK_UNTIL);
+      const blockUntil = typeof stored === 'number' ? stored : parseInt(stored, 10);
+      if (blockUntil && blockUntil > Date.now()) {
+        this._state.unfollowBlockUntil = blockUntil;
+        return;
+      }
+      if (stored) {
+        await this._localStorage.remove(STORAGE_KEYS.UNFOLLOW_BLOCK_UNTIL);
+      }
+      this._state.unfollowBlockUntil = null;
+    } catch (e) {
+      console.error('[FloatingPanelApp] Erro ao carregar cooldown de unfollow:', e);
+      this._state.unfollowBlockUntil = null;
+    }
+  }
+
+  /**
+   * Define cooldown de 24 horas para unfollow após erro 400
+   */
+  private async _setUnfollowCooldown(): Promise<void> {
+    const blockUntil = Date.now() + UNFOLLOW_COOLDOWN_MS;
+    this._state.unfollowBlockUntil = blockUntil;
+    try {
+      await this._localStorage.set(STORAGE_KEYS.UNFOLLOW_BLOCK_UNTIL, blockUntil);
+      console.log(`[FloatingPanelApp] Cooldown de unfollow ativado até ${new Date(blockUntil).toLocaleString()}`);
+    } catch (e) {
+      console.error('[FloatingPanelApp] Erro ao salvar cooldown de unfollow:', e);
+    }
+  }
+
+  /**
+   * Verifica se o cooldown de unfollow está ativo
+   */
+  private _isUnfollowCooldownActive(): boolean {
+    if (!this._state.unfollowBlockUntil) {
+      return false;
+    }
+    if (Date.now() >= this._state.unfollowBlockUntil) {
+      this._state.unfollowBlockUntil = null;
+      this._localStorage.remove(STORAGE_KEYS.UNFOLLOW_BLOCK_UNTIL).catch(() => {});
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Formata tempo restante de cooldown
+   */
+  private _formatRemainingCooldown(targetMs: number): string {
+    const remainingMs = Math.max(0, targetMs - Date.now());
+    const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
+
+  /**
+   * Carrega o timestamp de cooldown de scan/checkpoint
+   */
+  private async _loadScanCooldown(): Promise<void> {
+    try {
+      const stored = await this._localStorage.get(STORAGE_KEYS.SCAN_BLOCK_UNTIL);
+      const blockUntil = typeof stored === 'number' ? stored : parseInt(stored, 10);
+      if (blockUntil && blockUntil > Date.now()) {
+        this._state.scanBlockUntil = blockUntil;
+        const lastError = await this._localStorage.get(STORAGE_KEYS.SCAN_LAST_ERROR);
+        this._state.scanErrorMessage = typeof lastError === 'string' ? lastError : null;
+        this._startCooldownTimer();
+        return;
+      }
+      if (stored) {
+        await this._localStorage.remove(STORAGE_KEYS.SCAN_BLOCK_UNTIL);
+        await this._localStorage.remove(STORAGE_KEYS.SCAN_LAST_ERROR);
+      }
+      this._state.scanBlockUntil = null;
+      this._state.scanErrorMessage = null;
+    } catch (e) {
+      console.error('[FloatingPanelApp] Erro ao carregar cooldown de scan:', e);
+      this._state.scanBlockUntil = null;
+      this._state.scanErrorMessage = null;
+    }
+  }
+
+  /**
+   * Define cooldown de scan (ex.: 10 minutos após checkpoint)
+   */
+  private async _setScanCooldown(durationMs: number = SCAN_CHECKPOINT_COOLDOWN_MS, errorMsg?: string): Promise<void> {
+    const blockUntil = Date.now() + durationMs;
+    this._state.scanBlockUntil = blockUntil;
+    this._state.scanErrorMessage = errorMsg || 'O Instagram solicitou uma verificação de segurança (checkpoint). Por favor, abra o Instagram e complete a confirmação.';
+    try {
+      await this._localStorage.set(STORAGE_KEYS.SCAN_BLOCK_UNTIL, blockUntil);
+      await this._localStorage.set(STORAGE_KEYS.SCAN_LAST_ERROR, this._state.scanErrorMessage);
+      console.log(`[FloatingPanelApp] Cooldown de scan ativado até ${new Date(blockUntil).toLocaleString()}`);
+    } catch (e) {
+      console.error('[FloatingPanelApp] Erro ao salvar cooldown de scan:', e);
+    }
+    this._startCooldownTimer();
+  }
+
+  /**
+   * Verifica se o cooldown de scan está ativo
+   */
+  private _isScanCooldownActive(): boolean {
+    if (!this._state.scanBlockUntil) {
+      return false;
+    }
+    if (Date.now() >= this._state.scanBlockUntil) {
+      this._state.scanBlockUntil = null;
+      this._localStorage.remove(STORAGE_KEYS.SCAN_BLOCK_UNTIL).catch(() => {});
+      this._localStorage.remove(STORAGE_KEYS.SCAN_LAST_ERROR).catch(() => {});
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Inicia timer periódico para contagem regressiva de cooldowns ativos
+   */
+  private _startCooldownTimer(): void {
+    if (this._cooldownTimer) {
+      return;
+    }
+    this._cooldownTimer = window.setInterval(() => {
+      const isScanActive = this._isScanCooldownActive();
+      const isUnfollowActive = this._isUnfollowCooldownActive();
+
+      if (isScanActive || isUnfollowActive) {
+        this._update();
+      } else {
+        this._stopCooldownTimer();
+        this._update();
+      }
+    }, 5000);
+  }
+
+  /**
+   * Para timer periódico de cooldown
+   */
+  private _stopCooldownTimer(): void {
+    if (this._cooldownTimer) {
+      clearInterval(this._cooldownTimer);
+      this._cooldownTimer = null;
+    }
+  }
+
+  /**
+   * Descarta mensagem de erro quando cooldown não estiver ativo
+   */
+  private _onDismissScanError(): void {
+    if (!this._isScanCooldownActive()) {
+      this._state.scanErrorMessage = null;
+      this._localStorage.remove(STORAGE_KEYS.SCAN_LAST_ERROR).catch(() => {});
+      this._update();
+    }
   }
 
   /**
@@ -643,8 +909,11 @@ export class FloatingPanelApp {
   /**
    * Toggle expansão do painel
    */
-  private _handleToggle(): void {
+  private async _handleToggle(): Promise<void> {
     this._state.isExpanded = !this._state.isExpanded;
+    if (this._state.isExpanded) {
+      await this._loadUnfollowCooldown();
+    }
     this._update();
   }
 
@@ -727,12 +996,10 @@ export class FloatingPanelApp {
    */
   private async _handleOpenHistory(): Promise<void> {
     console.log('[FloatingPanelApp] Abrindo página de histórico...');
-
-    try {
-      await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.OPEN_HISTORY });
-    } catch (error) {
-      console.error('[FloatingPanelApp] Erro ao abrir histórico:', error);
-    }
+    window.postMessage({
+      type: MESSAGE_TYPES.GHOSTGRAM_TO_BACKGROUND,
+      action: MESSAGE_ACTIONS.OPEN_HISTORY
+    }, '*');
   }
 
   /**
@@ -777,6 +1044,21 @@ export class FloatingPanelApp {
   }
 
   /**
+   * Remove usuários duplicados garantindo unicidade por ID
+   */
+  private _deduplicateUsers(users: User[]): User[] {
+    const seen = new Set<string>();
+    return users.filter(user => {
+      const id = user.getId() || user.getUsername();
+      if (!id || seen.has(id)) {
+        return false;
+      }
+      seen.add(id);
+      return true;
+    });
+  }
+
+  /**
    * Filtra usuários que foram seguidos recentemente (dentro do período de cooldown)
    */
   private async _applyFollowCooldownFilter(nonFollowers: User[]): Promise<User[]> {
@@ -817,7 +1099,9 @@ export class FloatingPanelApp {
     if (!scan) return;
 
     try {
-      let nonFollowers = scan.nonFollowers.map(u => User.fromObject(u));
+      let nonFollowers = this._deduplicateUsers(
+        scan.nonFollowers.map(u => User.fromObject(u))
+      );
       this._cooldownUsernames = await this._loadCooldownUsernames();
       nonFollowers = await this._applyFollowCooldownFilter(nonFollowers);
       this._state.nonFollowers = nonFollowers;
@@ -854,6 +1138,10 @@ export class FloatingPanelApp {
       searchQuery: this._state.searchQuery,
       unfollowLog: this._state.unfollowLog,
       scanHistory: this._state.scanHistory,
+      unfollowBlockUntil: this._state.unfollowBlockUntil,
+      scanBlockUntil: this._state.scanBlockUntil,
+      scanErrorMessage: this._state.scanErrorMessage,
+      onDismissScanError: () => this._onDismissScanError(),
       onToggle: () => this._handleToggle(),
       onStartScan: () => this._handleStartScan(),
       onTogglePause: () => this._handleTogglePause(),

@@ -174,4 +174,69 @@ describe('InstagramApiClient', () => {
         .rejects.toThrow('Failed to unfollow user: 403');
     });
   });
+
+  describe('fetchFriendshipsPage', () => {
+    it('deve retornar usuários da API REST com sucesso', async () => {
+      fetchMock.mockResponseOnce({
+        users: [
+          { pk_id: '123', username: 'maria', full_name: 'Maria Silva' }
+        ],
+        next_max_id: 'cursor_abc',
+        has_more: true,
+        status: 'ok'
+      });
+
+      const result = await client.fetchFriendshipsPage('followers', null, 50, 0);
+
+      expect(result.users).toHaveLength(1);
+      expect(result.users[0].username).toBe('maria');
+      expect(result.next_max_id).toBe('cursor_abc');
+      expect(result.has_more).toBe(true);
+      expect(result.isLegacyGraphQL).toBe(false);
+    });
+
+    it('deve enviar header Accept com application/json', async () => {
+      fetchMock.mockResponseOnce({ users: [], status: 'ok' });
+
+      await client.fetchFriendshipsPage('followers', null, 50, 0);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Accept: expect.stringContaining('application/json')
+          })
+        })
+      );
+    });
+
+    it('deve lançar erro amigável quando redirecionado para /challenge/ ou checkpoint', async () => {
+      fetchMock.mockResponseOnce('<!DOCTYPE html><html>Challenge</html>', 200, {
+        redirected: true,
+        url: 'https://www.instagram.com/challenge/12345/'
+      });
+
+      await expect(client.fetchFriendshipsPage('followers', null, 50, 0))
+        .rejects.toThrow(/verificação de segurança|checkpoint/i);
+    });
+
+    it('deve lançar erro amigável quando redirecionado para /accounts/login/', async () => {
+      fetchMock.mockResponseOnce('<!DOCTYPE html><html>Login</html>', 200, {
+        redirected: true,
+        url: 'https://www.instagram.com/accounts/login/'
+      });
+
+      await expect(client.fetchFriendshipsPage('followers', null, 50, 0))
+        .rejects.toThrow(/sessão|login/i);
+    });
+
+    it('deve lançar erro amigável quando o Instagram retorna HTML (bloqueio temporário/DOCTYPE) em vez de SyntaxError críptico', async () => {
+      fetchMock.mockResponseOnce('<!DOCTYPE html><html><body>Error</body></html>', 200, {
+        headers: { 'content-type': 'text/html; charset=utf-8' }
+      });
+
+      await expect(client.fetchFriendshipsPage('followers', null, 50, 0))
+        .rejects.toThrow(/bloqueio temporário|limitação/i);
+    });
+  });
 });

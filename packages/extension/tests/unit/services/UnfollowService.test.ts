@@ -117,6 +117,20 @@ describe('UnfollowService', () => {
       expect(mockApiClient.unfollowUser).toHaveBeenCalledTimes(2);
     });
 
+    it('quando der erro 400 deve parar e informar para continuar no próximo dia para evitar bloqueio da conta', async () => {
+      const users = [createUser(1), createUser(2)];
+      mockApiClient.unfollowUser.mockRejectedValue(new Error('Failed to unfollow user: 400 Bad Request. Body: {"message": "checkpoint_required"}'));
+
+      const service = new UnfollowService(mockApiClient as any, settings, onProgress);
+      const log = await service.execute(users);
+
+      expect(log).toHaveLength(1);
+      expect(log[0].wasFailure()).toBe(true);
+      expect(mockApiClient.unfollowUser).toHaveBeenCalledTimes(1);
+      expect(log[0].getErrorMessage()).toContain('próximo dia');
+      expect(log[0].getErrorMessage()).toContain('bloqueio da conta');
+    });
+
     it('deve retornar array vazio para lista vazia de users', async () => {
       const service = new UnfollowService(mockApiClient as any, settings, onProgress);
       const log = await service.execute([]);

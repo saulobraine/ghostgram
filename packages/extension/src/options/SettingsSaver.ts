@@ -49,7 +49,7 @@ export class SettingsSaver {
       throw new Error(`Input with id "${key}" not found`);
     }
 
-    if (input.hasAttribute('readonly')) {
+    if (typeof input.hasAttribute === 'function' && input.hasAttribute('readonly')) {
       return input.value.trim();
     }
 

@@ -24,6 +24,10 @@ export interface FloatingPanelProps {
   searchQuery: string;
   unfollowLog: UnfollowLogEntry[];
   scanHistory?: ScanHistoryItem[];
+  unfollowBlockUntil?: number | null;
+  scanBlockUntil?: number | null;
+  scanErrorMessage?: string | null;
+  onDismissScanError?: () => void;
   onToggle: () => void;
   onStartScan: () => void;
   onTogglePause: () => void;

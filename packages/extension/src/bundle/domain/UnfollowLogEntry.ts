@@ -61,14 +61,22 @@ export class UnfollowLogEntry {
     user: ReturnType<User['toObject']>;
     unfollowedSuccessfully: boolean;
     timestamp: number;
-    errorMessage: string | null;
+    errorMessage?: string | null;
   } {
-    return {
+    const obj: {
+      user: ReturnType<User['toObject']>;
+      unfollowedSuccessfully: boolean;
+      timestamp: number;
+      errorMessage?: string | null;
+    } = {
       user: this._user.toObject(),
       unfollowedSuccessfully: this._unfollowedSuccessfully,
-      timestamp: this._timestamp,
-      errorMessage: this._errorMessage
+      timestamp: this._timestamp
     };
+    if (this._errorMessage !== null) {
+      obj.errorMessage = this._errorMessage;
+    }
+    return obj;
   }
 
   equals(other: unknown): boolean {

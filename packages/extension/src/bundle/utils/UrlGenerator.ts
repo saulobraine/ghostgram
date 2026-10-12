@@ -6,6 +6,32 @@ import type { Settings } from '../../domain/Settings.js';
  */
 export class UrlGenerator {
   /**
+   * Gera a URL para o endpoint REST de amizades (following ou followers)
+   * @param endpoint - 'following' ou 'followers'
+   * @param maxId - Cursor de paginação (opcional)
+   * @param count - Quantidade de usuários por página (padrão: 50)
+   * @returns URL completa
+   * @throws {Error} Se o ID do usuário não for encontrado
+   */
+  static generateFriendshipsUrl(
+    endpoint: 'following' | 'followers',
+    maxId?: string | null,
+    count: number = 50
+  ): string {
+    const userId = CookieHelper.getUserId();
+    if (!userId) {
+      throw new Error('ID do usuário (ds_user_id) não encontrado nos cookies');
+    }
+
+    const origin = (typeof window !== 'undefined' && window.location?.origin?.includes('instagram.com'))
+      ? window.location.origin
+      : 'https://www.instagram.com';
+
+    let url = `${origin}/api/v1/friendships/${encodeURIComponent(userId)}/${endpoint}/?count=${count}&search_surface=follow_list_page`;
+    return maxId ? `${url}&max_id=${encodeURIComponent(maxId)}` : url;
+  }
+
+  /**
    * Gera a URL para buscar seguidores
    * @param settings - Configurações do sistema
    * @param cursor - Cursor para paginação (opcional)

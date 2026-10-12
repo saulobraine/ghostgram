@@ -28,6 +28,8 @@ interface PanelRefs {
   resultsHeader: HTMLElement | null;
   selectedCount: HTMLElement | null;
   unfollowBtn: HTMLButtonElement | null;
+  scanBtn: HTMLButtonElement | null;
+  scanAlert: HTMLElement | null;
   startSection: HTMLElement | null;
   progressSection: HTMLElement | null;
   resultsSection: HTMLElement | null;
@@ -57,6 +59,8 @@ export class FloatingPanel {
       resultsHeader: null,
       selectedCount: null,
       unfollowBtn: null,
+      scanBtn: null,
+      scanAlert: null,
       startSection: null,
       progressSection: null,
       resultsSection: null
@@ -235,6 +239,18 @@ export class FloatingPanel {
       return;
     }
 
+    // Se cooldown de scan ou mensagem de erro mudou e estamos na startSection, atualiza a seção
+    const scanCooldownChanged =
+      props.scanBlockUntil !== prevProps.scanBlockUntil ||
+      props.scanErrorMessage !== prevProps.scanErrorMessage;
+
+    if (scanCooldownChanged && this._refs.startSection) {
+      this._refs.startSection.remove();
+      this._refs.startSection = this._createStartSection(props);
+      this._refs.content!.appendChild(this._refs.startSection);
+      return;
+    }
+
     // Mudança de tab ou busca: recria seção de resultados
     if (tabOrSearchChanged && props.isScanCompleted && this._refs.resultsSection) {
       this._refs.resultsSection.remove();
@@ -263,6 +279,13 @@ export class FloatingPanel {
       this._refs.progressSection = this._createProgressSection(props);
       this._refs.content!.appendChild(this._refs.progressSection);
 
+      return;
+    }
+
+    // Cooldown mudou: atualiza botão unfollow
+    const cooldownChanged = props.unfollowBlockUntil !== prevProps.unfollowBlockUntil;
+    if (cooldownChanged && (props.isScanCompleted || props.isScanning)) {
+      this._updateSelectedCount(props);
       return;
     }
 
@@ -443,6 +466,20 @@ export class FloatingPanel {
   }
 
   /**
+   * Formata tempo restante em horas e minutos
+   */
+  private _formatRemainingTime(targetMs: number): string {
+    const remainingMs = Math.max(0, targetMs - Date.now());
+    const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  }
+
+  /**
    * Atualiza contador de selecionados
    */
   private _updateSelectedCount(props: FloatingPanelProps, targetSection: HTMLElement | null = null): void {
@@ -452,23 +489,40 @@ export class FloatingPanel {
 
     const section = targetSection || this._refs.resultsSection;
 
-    // Atualiza botão unfollow
-    if (props.nonFollowers.length > 0 && section) {
-      if (!this._refs.unfollowBtn) {
-        this._refs.unfollowBtn = createElement('button', {
-          className: 'iu-button iu-button-danger',
-          onClick: props.onStartUnfollow,
-          disabled: props.selectedUsers.size === 0
-        }, `Deixar de seguir (${props.selectedUsers.size})`) as HTMLButtonElement;
-        section.appendChild(this._refs.unfollowBtn);
-      } else {
-        this._refs.unfollowBtn.textContent = `Deixar de seguir (${props.selectedUsers.size})`;
-        this._refs.unfollowBtn.disabled = props.selectedUsers.size === 0;
+    if (props.nonFollowers.length === 0 || !section) {
+      if (this._refs.unfollowBtn) {
+        this._refs.unfollowBtn.remove();
+        this._refs.unfollowBtn = null;
       }
-    } else if (this._refs.unfollowBtn) {
-      this._refs.unfollowBtn.remove();
-      this._refs.unfollowBtn = null;
+      return;
     }
+
+    const isCooldownActive = Boolean(props.unfollowBlockUntil && props.unfollowBlockUntil > Date.now());
+    const remainingText = isCooldownActive ? this._formatRemainingTime(props.unfollowBlockUntil!) : '';
+
+    if (!this._refs.unfollowBtn) {
+      this._refs.unfollowBtn = createElement('button', {
+        className: `iu-button iu-button-danger${isCooldownActive ? ' iu-button-blocked' : ''}`,
+        onClick: isCooldownActive ? undefined : props.onStartUnfollow,
+        disabled: isCooldownActive || props.selectedUsers.size === 0,
+        title: isCooldownActive ? 'Instagram retornou erro 400. Unfollow bloqueado por 24h para proteger sua conta.' : ''
+      }, isCooldownActive ? `Bloqueado (${remainingText})` : `Deixar de seguir (${props.selectedUsers.size})`) as HTMLButtonElement;
+      section.appendChild(this._refs.unfollowBtn);
+      return;
+    }
+
+    if (isCooldownActive) {
+      this._refs.unfollowBtn.textContent = `Bloqueado (${remainingText})`;
+      this._refs.unfollowBtn.disabled = true;
+      this._refs.unfollowBtn.title = 'Instagram retornou erro 400. Unfollow bloqueado por 24h para proteger sua conta.';
+      this._refs.unfollowBtn.classList.add('iu-button-blocked');
+      return;
+    }
+
+    this._refs.unfollowBtn.textContent = `Deixar de seguir (${props.selectedUsers.size})`;
+    this._refs.unfollowBtn.disabled = props.selectedUsers.size === 0;
+    this._refs.unfollowBtn.title = '';
+    this._refs.unfollowBtn.classList.remove('iu-button-blocked');
   }
 
   private _syncToggleButton(props: FloatingPanelProps): void {
@@ -536,6 +590,8 @@ export class FloatingPanel {
     this._refs.resultsHeader = null;
     this._refs.selectedCount = null;
     this._refs.unfollowBtn = null;
+    this._refs.scanBtn = null;
+    this._refs.scanAlert = null;
     this._renderedUserIds.clear();
   }
 
@@ -551,6 +607,8 @@ export class FloatingPanel {
     this._refs.resultsHeader = null;
     this._refs.selectedCount = null;
     this._refs.unfollowBtn = null;
+    this._refs.scanBtn = null;
+    this._refs.scanAlert = null;
     this._refs.startSection = null;
     this._refs.progressSection = null;
     this._refs.resultsSection = null;
@@ -661,15 +719,61 @@ export class FloatingPanel {
    * Cria seção inicial
    */
   private _createStartSection(props: FloatingPanelProps): HTMLElement {
-    const section = createElement('div', { className: 'iu-start-section' },
+    const section = createElement('div', { className: 'iu-start-section' });
+
+    const isScanCooldownActive = Boolean(props.scanBlockUntil && props.scanBlockUntil > Date.now());
+    const remainingText = isScanCooldownActive ? this._formatRemainingTime(props.scanBlockUntil!) : '';
+
+    if (props.scanErrorMessage || isScanCooldownActive) {
+      const alertDiv = createElement('div', {
+        className: `iu-scan-alert ${isScanCooldownActive ? 'iu-scan-alert-checkpoint' : 'iu-scan-alert-error'}`
+      });
+
+      const alertIcon = createElement('span', { className: 'iu-scan-alert-icon' }, isScanCooldownActive ? '🛡️' : '⚠️');
+      const alertContent = createElement('div', { className: 'iu-scan-alert-content' });
+
+      const alertTitle = createElement('strong', { className: 'iu-scan-alert-title' },
+        isScanCooldownActive ? 'Proteção de Conta / Checkpoint (10m)' : 'Aviso do Scan'
+      );
+
+      const alertMsg = createElement('p', { className: 'iu-scan-alert-msg' },
+        isScanCooldownActive
+          ? 'O Instagram solicitou uma verificação de segurança (checkpoint). Por favor, abra a aba do Instagram e complete a confirmação. Para a segurança da sua conta, um intervalo de proteção de pelo menos 10 minutos está ativo antes que um novo scan possa ser realizado.'
+          : (props.scanErrorMessage || 'Ocorreu um erro ao carregar os dados.')
+      );
+
+      alertContent.appendChild(alertTitle);
+      alertContent.appendChild(alertMsg);
+
+      if (isScanCooldownActive) {
+        const cooldownBadge = createElement('span', {
+          className: 'iu-scan-alert-cooldown-badge'
+        }, `Tempo restante: ${remainingText}`);
+        alertContent.appendChild(cooldownBadge);
+      }
+
+      alertDiv.appendChild(alertIcon);
+      alertDiv.appendChild(alertContent);
+
+      this._refs.scanAlert = alertDiv;
+      section.appendChild(alertDiv);
+    }
+
+    section.appendChild(
       createElement('p', { className: 'iu-description' },
         'Encontre quem não te segue de volta no Instagram.'
-      ),
-      createElement('button', {
-        className: 'iu-button iu-button-primary',
-        onClick: props.onStartScan
-      }, 'Iniciar Scan')
+      )
     );
+
+    const scanBtn = createElement('button', {
+      className: `iu-button iu-button-primary${isScanCooldownActive ? ' iu-button-blocked' : ''}`,
+      onClick: isScanCooldownActive ? undefined : props.onStartScan,
+      disabled: isScanCooldownActive,
+      title: isScanCooldownActive ? `Scan bloqueado temporariamente por segurança (${remainingText})` : ''
+    }, isScanCooldownActive ? `Aguarde (${remainingText})` : 'Iniciar Scan') as HTMLButtonElement;
+
+    this._refs.scanBtn = scanBtn;
+    section.appendChild(scanBtn);
 
     // Scans anteriores
     if (props.scanHistory && props.scanHistory.length > 0) {
@@ -791,11 +895,13 @@ export class FloatingPanel {
     // Lista de usuários (será atualizada incrementalmente)
     this._refs.userList = createElement('div', { className: 'iu-user-list' });
     filteredUsers.forEach(user => {
-      const isSelected = props.selectedUsers.has(user.getId());
-      const isWhitelisted = props.whitelist?.has(user.getId());
-      const userItem = this._createUserItemWithActions(user, isSelected, !!isWhitelisted, props);
-      this._refs.userList!.appendChild(userItem);
-      this._renderedUserIds.add(user.getId());
+      if (!this._renderedUserIds.has(user.getId())) {
+        const isSelected = props.selectedUsers.has(user.getId());
+        const isWhitelisted = props.whitelist?.has(user.getId());
+        const userItem = this._createUserItemWithActions(user, isSelected, !!isWhitelisted, props);
+        this._refs.userList!.appendChild(userItem);
+        this._renderedUserIds.add(user.getId());
+      }
     });
 
     if (props.activeTab === 'whitelist' && filteredUsers.length === 0) {
@@ -917,11 +1023,13 @@ export class FloatingPanel {
 
     if (filteredUsers.length > 0) {
       filteredUsers.forEach(user => {
-        const isSelected = props.selectedUsers.has(user.getId());
-        const isWhitelisted = props.whitelist?.has(user.getId());
-        const userItem = this._createUserItemWithActions(user, isSelected, !!isWhitelisted, props);
-        this._refs.userList!.appendChild(userItem);
-        this._renderedUserIds.add(user.getId());
+        if (!this._renderedUserIds.has(user.getId())) {
+          const isSelected = props.selectedUsers.has(user.getId());
+          const isWhitelisted = props.whitelist?.has(user.getId());
+          const userItem = this._createUserItemWithActions(user, isSelected, !!isWhitelisted, props);
+          this._refs.userList!.appendChild(userItem);
+          this._renderedUserIds.add(user.getId());
+        }
       });
     } else {
       const emptyMessage = createElement('p', { className: 'iu-empty-message' },
@@ -945,11 +1053,15 @@ export class FloatingPanel {
 
     // Botão de unfollow
     if (filteredUsers.length > 0) {
+      const isCooldownActive = Boolean(props.unfollowBlockUntil && props.unfollowBlockUntil > Date.now());
+      const remainingText = isCooldownActive ? this._formatRemainingTime(props.unfollowBlockUntil!) : '';
+
       this._refs.unfollowBtn = createElement('button', {
-        className: 'iu-button iu-button-danger',
-        onClick: props.onStartUnfollow,
-        disabled: props.selectedUsers.size === 0
-      }, `Deixar de seguir (${props.selectedUsers.size})`) as HTMLButtonElement;
+        className: `iu-button iu-button-danger${isCooldownActive ? ' iu-button-blocked' : ''}`,
+        onClick: isCooldownActive ? undefined : props.onStartUnfollow,
+        disabled: isCooldownActive || props.selectedUsers.size === 0,
+        title: isCooldownActive ? 'Instagram retornou erro 400. Unfollow bloqueado por 24h para proteger sua conta.' : ''
+      }, isCooldownActive ? `Bloqueado (${remainingText})` : `Deixar de seguir (${props.selectedUsers.size})`) as HTMLButtonElement;
       footer.appendChild(this._refs.unfollowBtn);
     }
 
@@ -974,9 +1086,13 @@ export class FloatingPanel {
     this._refs.userList = createElement('div', { className: 'iu-user-list' });
 
     if (filteredUsers.length > 0) {
+      const renderedWhitelistIds = new Set<string>();
       filteredUsers.forEach(user => {
-        const userItem = this._createWhitelistItem(user, props);
-        this._refs.userList!.appendChild(userItem);
+        if (!renderedWhitelistIds.has(user.getId())) {
+          renderedWhitelistIds.add(user.getId());
+          const userItem = this._createWhitelistItem(user, props);
+          this._refs.userList!.appendChild(userItem);
+        }
       });
     } else {
       const emptyMessage = createElement('p', { className: 'iu-empty-message' },
@@ -988,14 +1104,24 @@ export class FloatingPanel {
   }
 
   /**
-   * Filtra usuários por pesquisa
+   * Filtra usuários por pesquisa garantindo unicidade por ID
    */
   private _filterUsersBySearch(users: User[], query: string): User[] {
+    const seen = new Set<string>();
+    const unique = users.filter(user => {
+      const id = user.getId() || user.getUsername();
+      if (!id || seen.has(id)) {
+        return false;
+      }
+      seen.add(id);
+      return true;
+    });
+
     if (!query || query.trim() === '') {
-      return users;
+      return unique;
     }
     const lowerQuery = query.toLowerCase();
-    return users.filter(user =>
+    return unique.filter(user =>
       user.getUsername().toLowerCase().includes(lowerQuery) ||
       (user.getFullName() && user.getFullName().toLowerCase().includes(lowerQuery))
     );

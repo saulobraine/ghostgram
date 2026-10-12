@@ -399,13 +399,136 @@ describe('FloatingPanel', () => {
     });
   });
 
-  describe('stealth mode', () => {
-    it('não aplica classe stealth (funcionalidade não implementada no componente)', () => {
-      const props = createBaseProps({ stealthMode: true });
+  describe('deduplicação na renderização', () => {
+    it('deve renderizar apenas 1 vez quando houver usuários duplicados em nonFollowers', () => {
+      const u1 = createMockUser('1', 'user1');
+      const u1Dup = createMockUser('1', 'user1');
+      const u2 = createMockUser('2', 'user2');
+
+      const props = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: [u1, u1Dup, u2]
+      });
+
+      const element = panel.render(props);
+      const userItems = element.querySelectorAll('.iu-user-item');
+      expect(userItems.length).toBe(2);
+    });
+  });
+
+  describe('cooldown de unfollow (24h após erro 400)', () => {
+    it('deve desabilitar botão de unfollow e exibir tempo restante quando unfollowBlockUntil estiver ativo', () => {
+      const users = [createMockUser(1)];
+      const blockUntil = Date.now() + 2 * 60 * 60 * 1000; // 2 horas no futuro
+      const props = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: users,
+        selectedUsers: new Set(['1']),
+        unfollowBlockUntil: blockUntil
+      });
       const element = panel.render(props);
 
-      // stealthMode não é processado pelo FloatingPanel diretamente
-      expect(element.classList.contains('iu-floating-panel')).toBe(true);
+      const unfollowBtn = element.querySelector('.iu-button-danger');
+      expect(unfollowBtn).not.toBeNull();
+      expect(unfollowBtn.disabled).toBe(true);
+      expect(unfollowBtn.textContent).toContain('Bloqueado');
+      expect(unfollowBtn.title).toContain('400');
+    });
+
+    it('deve habilitar botão de unfollow normalmente quando unfollowBlockUntil for nulo', () => {
+      const users = [createMockUser(1)];
+      const props = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: users,
+        selectedUsers: new Set(['1']),
+        unfollowBlockUntil: null
+      });
+      const element = panel.render(props);
+
+      const unfollowBtn = element.querySelector('.iu-button-danger');
+      expect(unfollowBtn).not.toBeNull();
+      expect(unfollowBtn.disabled).toBe(false);
+      expect(unfollowBtn.textContent).toContain('Deixar de seguir (1)');
+    });
+
+    it('deve atualizar o botão no update() quando unfollowBlockUntil for ativado', () => {
+      const users = [createMockUser(1)];
+      const propsInitial = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: users,
+        selectedUsers: new Set(['1']),
+        unfollowBlockUntil: null
+      });
+      panel.render(propsInitial);
+
+      const unfollowBtn = panel.element.querySelector('.iu-button-danger');
+      expect(unfollowBtn.disabled).toBe(false);
+
+      const blockUntil = Date.now() + 60 * 60 * 1000; // 1 hora
+      const propsBlocked = createBaseProps({
+        isExpanded: true,
+        isScanCompleted: true,
+        nonFollowers: users,
+        selectedUsers: new Set(['1']),
+        unfollowBlockUntil: blockUntil
+      });
+      panel.update(propsBlocked);
+
+      expect(unfollowBtn.disabled).toBe(true);
+      expect(unfollowBtn.textContent).toContain('Bloqueado');
+    });
+
+    it('deve exibir feedback de checkpoint e desabilitar botão Iniciar Scan quando scanBlockUntil estiver ativo', () => {
+      const blockUntil = Date.now() + 10 * 60 * 1000;
+      const props = createBaseProps({
+        isExpanded: true,
+        isScanning: false,
+        isScanCompleted: false,
+        scanBlockUntil: blockUntil
+      });
+      const element = panel.render(props);
+
+      const alert = element.querySelector('.iu-scan-alert-checkpoint');
+      expect(alert).not.toBeNull();
+      expect(alert.textContent).toContain('Proteção de Conta / Checkpoint');
+      expect(alert.textContent).toContain('verificação de segurança');
+
+      const scanBtn = element.querySelector('.iu-button-primary');
+      expect(scanBtn).not.toBeNull();
+      expect(scanBtn.disabled).toBe(true);
+      expect(scanBtn.textContent).toContain('Aguarde');
+    });
+
+    it('deve atualizar startSection no update() quando scanBlockUntil for acionado', () => {
+      const propsInitial = createBaseProps({
+        isExpanded: true,
+        isScanning: false,
+        isScanCompleted: false,
+        scanBlockUntil: null
+      });
+      panel.render(propsInitial);
+
+      let scanBtn = panel.element.querySelector('.iu-button-primary');
+      expect(scanBtn.disabled).toBe(false);
+      expect(scanBtn.textContent).toBe('Iniciar Scan');
+
+      const blockUntil = Date.now() + 10 * 60 * 1000;
+      const propsBlocked = createBaseProps({
+        isExpanded: true,
+        isScanning: false,
+        isScanCompleted: false,
+        scanBlockUntil: blockUntil
+      });
+      panel.update(propsBlocked);
+
+      scanBtn = panel.element.querySelector('.iu-button-primary');
+      expect(scanBtn.disabled).toBe(true);
+      expect(scanBtn.textContent).toContain('Aguarde');
+      expect(panel.element.querySelector('.iu-scan-alert-checkpoint')).not.toBeNull();
     });
   });
 });

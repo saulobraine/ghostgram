@@ -177,6 +177,73 @@ describe('ScanService', () => {
     });
   });
 
+  describe('deduplicação de usuários', () => {
+    it('deve deduplicar usuários repetidos entre páginas na API REST (friendships)', async () => {
+      mockApiClient.fetchFriendshipsPage = jest.fn();
+
+      // Fase 1: Following (página 1 e 2 com user2 repetido na transição)
+      mockApiClient.fetchFriendshipsPage
+        .mockResolvedValueOnce({
+          users: [
+            { pk_id: '1', username: 'user1' },
+            { pk_id: '2', username: 'user2' }
+          ],
+          next_max_id: 'cursor_p2',
+          has_more: true,
+          isLegacyGraphQL: false
+        })
+        .mockResolvedValueOnce({
+          users: [
+            { pk_id: '2', username: 'user2' }, // repetido!
+            { pk_id: '3', username: 'user3' }
+          ],
+          next_max_id: null,
+          has_more: false,
+          isLegacyGraphQL: false
+        })
+        // Fase 2: Followers (página 1)
+        .mockResolvedValueOnce({
+          users: [
+            { pk_id: '3', username: 'user3' }
+          ],
+          next_max_id: null,
+          has_more: false,
+          isLegacyGraphQL: false
+        });
+
+      const service = new ScanService(mockApiClient, settings, onProgress);
+      const results = await service.start();
+
+      expect(results).toHaveLength(3);
+      const ids = results.map(u => u.getId());
+      expect(ids).toEqual(['1', '2', '3']);
+      expect(new Set(ids).size).toBe(3);
+    });
+
+    it('deve deduplicar usuários repetidos no scan legado GraphQL', async () => {
+      mockApiClient.fetchFollowers
+        .mockResolvedValueOnce({
+          users: [{ id: '1', username: 'u1' }, { id: '2', username: 'u2' }],
+          hasNextPage: true,
+          endCursor: 'c1',
+          totalCount: 3
+        })
+        .mockResolvedValueOnce({
+          users: [{ id: '2', username: 'u2' }, { id: '3', username: 'u3' }], // id 2 repetido
+          hasNextPage: false,
+          endCursor: null,
+          totalCount: 3
+        });
+
+      const service = new ScanService(mockApiClient, settings, onProgress);
+      const results = await service.start();
+
+      expect(results).toHaveLength(3);
+      const ids = results.map(u => (typeof u.getId === 'function' ? u.getId() : (u as any).id));
+      expect(ids).toEqual(['1', '2', '3']);
+    });
+  });
+
   describe('delays entre ciclos', () => {
     it('deve chamar sleep entre páginas', async () => {
       mockApiClient.fetchFollowers

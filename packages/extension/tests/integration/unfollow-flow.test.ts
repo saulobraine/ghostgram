@@ -92,11 +92,10 @@ describe('Fluxo de Unfollow (Integração)', () => {
     expect(onProgress).toHaveBeenCalledTimes(3);
   });
 
-  it('deve continuar unfollow mesmo com erro em um user', async () => {
-    // Primeiro sucesso, segundo erro, terceiro sucesso
+  it('deve parar unfollow após erro não recuperável em um user e marcar failure', async () => {
+    // Primeiro sucesso, segundo erro não recuperável (400)
     fetchMock.mockResponseOnce(createUnfollowResponse());
     fetchMock.mockErrorResponseOnce(400, { message: 'Bad request' });
-    fetchMock.mockResponseOnce(createUnfollowResponse());
 
     const apiClient = new InstagramApiClient();
     const onProgress = jest.fn();
@@ -104,13 +103,14 @@ describe('Fluxo de Unfollow (Integração)', () => {
 
     const results = await service.execute(users);
 
-    expect(results).toHaveLength(3);
+    expect(results).toHaveLength(2);
     expect(results[0].wasSuccessful()).toBe(true);
     expect(results[1].wasSuccessful()).toBe(false);
-    expect(results[2].wasSuccessful()).toBe(true);
+    expect(results[1].getErrorMessage()).toContain('próximo dia');
+    expect(results[1].getErrorMessage()).toContain('bloqueio da conta');
 
-    // Fetch chamado para todos os 3
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // Fetch chamado para os 2 primeiros usuários antes de parar
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('deve usar POST para chamadas de unfollow', async () => {

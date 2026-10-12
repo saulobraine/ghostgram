@@ -163,13 +163,27 @@ export class UnfollowService {
       console.error(`[UnfollowService] Failed to unfollow ${username}:`, lastError?.message || 'Unknown error');
       // Parar o processamento quando houver falha (conforme requisito)
       this._shouldStop = true;
-      return UnfollowLogEntry.createFailure(user, lastError?.message || 'Unknown error');
+      const is400 = this._is400Error(lastError);
+      const errorMessage = is400
+        ? 'Erro 400: Limite de ações atingido. Recomendamos continuar no próximo dia para evitar o bloqueio da conta.'
+        : (lastError?.message || 'Unknown error');
+      return UnfollowLogEntry.createFailure(user, errorMessage);
     }
   }
 
+  private _is400Error(error: Error | null): boolean {
+    if (!error) return false;
+    const msg = error.message.toLowerCase();
+    return msg.includes('400') || msg.includes('bad request');
+  }
+
   private _shouldRetry(error: Error): boolean {
+    if (this._is400Error(error)) {
+      return false;
+    }
+
     // Extrai status code da mensagem de erro
-    const match = error.message.match(/Failed to unfollow user \d+: (\d+)/);
+    const match = error.message.match(/Failed to unfollow user(?:\s+\d+)?:?\s*(\d+)/);
     if (match) {
       const statusCode = parseInt(match[1], 10);
       // Retry em 429 (rate limit) e 5xx (server errors)
@@ -212,10 +226,6 @@ export class UnfollowService {
         remainingMs: waitTime,
         reason: `Pausa automática após ${perCycle} unfollows para reduzir o risco de bloqueio por atividade suspeita.`
       });
-    }
-
-    if (!this._shouldStop) {
-      this._notifyProgress(percentage, log);
     }
   }
 

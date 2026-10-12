@@ -9,11 +9,17 @@ interface MockResponse {
   statusText?: string;
   headers?: Record<string, string>;
   error?: Error;
+  redirected?: boolean;
+  url?: string;
 }
 
 interface MockFetch {
   (...args: any[]): Promise<any>;
-  mockResponseOnce: (body: any, status?: number) => void;
+  mockResponseOnce: (
+    body: any,
+    status?: number,
+    meta?: { headers?: Record<string, string>; redirected?: boolean; url?: string }
+  ) => void;
   mockErrorResponseOnce: (status?: number, body?: any) => void;
   mockNetworkErrorOnce: (message?: string) => void;
   mockResponses: (bodies: any[]) => void;
@@ -42,13 +48,30 @@ export const setupFetchMock = (): MockFetch => {
         throw next.error;
       }
 
+      const headersMap = new Map<string, string>();
+      if (next.headers) {
+        for (const [k, v] of Object.entries(next.headers)) {
+          headersMap.set(k.toLowerCase(), v);
+        }
+      }
+
       return {
         ok: next.ok ?? true,
         status: next.status ?? 200,
         statusText: next.statusText ?? 'OK',
-        json: async () => next.body,
-        text: async () => JSON.stringify(next.body),
-        headers: new Map(Object.entries(next.headers ?? {}))
+        redirected: next.redirected ?? false,
+        url: next.url ?? _url,
+        json: async () => {
+          if (typeof next.body === 'string') {
+            return JSON.parse(next.body);
+          }
+          return next.body;
+        },
+        text: async () => typeof next.body === 'string' ? next.body : JSON.stringify(next.body),
+        headers: {
+          get: (name: string) => headersMap.get(name.toLowerCase()) || null,
+          has: (name: string) => headersMap.has(name.toLowerCase())
+        }
       };
     }
 
@@ -57,9 +80,14 @@ export const setupFetchMock = (): MockFetch => {
       ok: true,
       status: 200,
       statusText: 'OK',
+      redirected: false,
+      url: _url,
       json: async () => ({}),
       text: async () => '{}',
-      headers: new Map()
+      headers: {
+        get: () => null,
+        has: () => false
+      }
     };
   });
 
@@ -68,8 +96,19 @@ export const setupFetchMock = (): MockFetch => {
   /**
    * Queue a successful JSON response
    */
-  mockFetch.mockResponseOnce = (body: any, status = 200) => {
-    responseQueue.push({ body, ok: status >= 200 && status < 300, status });
+  mockFetch.mockResponseOnce = (
+    body: any,
+    status = 200,
+    meta?: { headers?: Record<string, string>; redirected?: boolean; url?: string }
+  ) => {
+    responseQueue.push({
+      body,
+      ok: status >= 200 && status < 300,
+      status,
+      headers: meta?.headers,
+      redirected: meta?.redirected,
+      url: meta?.url
+    });
   };
 
   /**

@@ -577,3 +577,59 @@ body {
 .popup-plan__name--premium {
   color: #ffd700;
 }
+
+/* Cooldown Block Card */
+.popup-block-card {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-block-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popup-block-card__icon {
+  font-size: 16px;
+}
+
+.popup-block-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.popup-block-card__desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #ccc;
+}
+
+.popup-block-card__desc strong {
+  color: #f87171;
+}
+
+.popup-block-card__reset-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.popup-block-card__reset-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}

@@ -4,6 +4,8 @@
 
 // Constantes inlinadas para evitar imports estáticos (content scripts clássicos não suportam ESM)
 const INSTAGRAM_HOSTNAME = 'www.instagram.com';
+const MESSAGE_TYPE_TO_BACKGROUND = 'GHOSTGRAM_TO_BACKGROUND';
+const MESSAGE_TYPE_FROM_BACKGROUND = 'GHOSTGRAM_FROM_BACKGROUND';
 
 interface FloatingPanelAppInterface {
   init(container: HTMLElement): Promise<void>;
@@ -38,7 +40,7 @@ class ContentScript {
     }
 
     // Verifica se está no Instagram
-    if (location.hostname !== INSTAGRAM_HOSTNAME) {
+    if (location.hostname !== INSTAGRAM_HOSTNAME && location.hostname !== 'instagram.com' && !location.hostname.endsWith('.instagram.com')) {
       console.log('[GhostGram] Não está no Instagram, ignorando');
       return;
     }
@@ -46,6 +48,9 @@ class ContentScript {
     console.log('[GhostGram] Inicializando no Instagram...');
     this._initialized = true;
     window.__GHOSTGRAM_INITIALIZED__ = true;
+
+    // Configura bridge de comunicação com o FloatingPanelApp (page context)
+    this._setupCommunicationBridge();
 
     // Configura listener para mensagens do popup
     this._setupMessageListener();
@@ -55,6 +60,32 @@ class ContentScript {
 
     // Inicia monitoramento de URL para stories
     this._startUrlMonitor();
+  }
+
+  /**
+   * Configura bridge de comunicação entre o FloatingPanelApp (page context)
+   * e o background service worker via chrome.runtime.sendMessage.
+   * @private
+   */
+  private _setupCommunicationBridge(): void {
+    window.addEventListener('message', async (event: MessageEvent) => {
+      if (event.source !== window) return;
+
+      const data = event.data as { type?: string; action?: string; payload?: Record<string, any> };
+      if (data?.type !== MESSAGE_TYPE_TO_BACKGROUND) return;
+
+      const { action, payload } = data;
+      console.log('[GhostGram Bridge] Encaminhando para background:', action);
+
+      try {
+        const response = await chrome.runtime.sendMessage({ action, ...payload });
+        window.postMessage({ type: MESSAGE_TYPE_FROM_BACKGROUND, action, response, success: true }, '*');
+      } catch (error) {
+        const err = error as Error;
+        console.error('[GhostGram Bridge] Erro:', error);
+        window.postMessage({ type: MESSAGE_TYPE_FROM_BACKGROUND, action, error: err.message, success: false }, '*');
+      }
+    });
   }
 
   /**

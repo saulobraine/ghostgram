@@ -67,6 +67,54 @@ async function showOnInstagram(): Promise<void> {
   actionsSection.className = 'popup-actions popup-actions--column';
   actionsSection.innerHTML = '';
 
+  // Verificar se há cooldown de 24h ativo após erro 400
+  const unfollowBlockData = await chrome.storage.local.get(['ghostgram_unfollow_block_until']);
+  const blockUntil = unfollowBlockData.ghostgram_unfollow_block_until;
+
+  if (blockUntil && blockUntil > Date.now()) {
+    const remainingMs = blockUntil - Date.now();
+    const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const timeRemaining = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    const cooldownCard = document.createElement('div');
+    cooldownCard.className = 'popup-block-card';
+    cooldownCard.innerHTML = `
+      <div class="popup-block-card__header">
+        <span class="popup-block-card__icon">🛑</span>
+        <strong class="popup-block-card__title">Cooldown de 24h Ativo</strong>
+      </div>
+      <p class="popup-block-card__desc">
+        Instagram retornou erro 400 (limite de ações). Unfollow bloqueado para proteger sua conta.<br>
+        <strong>Tempo restante: ${timeRemaining}</strong>
+      </p>
+      <button type="button" class="popup-block-card__reset-btn" id="resetCooldownBtn">
+        Zerar Cooldown (Desbloquear)
+      </button>
+    `;
+
+    const resetBtn = cooldownCard.querySelector('#resetCooldownBtn') as HTMLButtonElement | null;
+    if (resetBtn) {
+      resetBtn.addEventListener('click', async () => {
+        if (confirm('Deseja realmente zerar o cooldown de 24h? Recomendamos aguardar o dia seguinte para evitar restrição na conta do Instagram.')) {
+          await chrome.storage.local.remove('ghostgram_unfollow_block_until');
+          chrome.tabs.query({ url: 'https://www.instagram.com/*' }, (tabs) => {
+            tabs.forEach(tab => {
+              if (tab.id !== undefined) {
+                chrome.tabs.sendMessage(tab.id, { action: 'resetUnfollowCooldown' }).catch(() => {});
+              }
+            });
+          });
+          cooldownCard.remove();
+          showToast('✓ Cooldown zerado', actionsSection);
+        }
+      });
+    }
+
+    actionsSection.appendChild(cooldownCard);
+  }
+
   // Follow cooldown select
   const cooldownItem = document.createElement('div');
   cooldownItem.className = 'popup-settings__item';
