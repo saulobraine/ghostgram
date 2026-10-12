@@ -1,40 +1,65 @@
 {
   "name": "@ghostgram/desktop",
   "version": "0.1.0",
-  "main": "out/main.js",
+  "description": "GhostGram Desktop - Aplicativo nativo para análise de seguidores e gestão de whitelist no Instagram",
+  "author": "GhostGram Team <contact@ghostgram.app>",
+  "main": "out/main/index.js",
   "scripts": {
-    "start": "tsc && electron .",
-    "dev": "tsc && electron .",
-    "build": "tsc && electron-builder",
-    "tsc": "tsc",
+    "dev:renderer": "vite",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "dev:electron": "tsc -p tsconfig.main.json && electron .",
+    "dev": "concurrently -k \"pnpm run dev:renderer\" \"wait-on tcp:5173 && pnpm run dev:electron\"",
+    "start": "electron .",
+    "build": "pnpm run build:renderer && pnpm run build:main",
+    "pack": "pnpm run build && electron-builder --dir -c.npmRebuild=false",
+    "dist": "pnpm run build && electron-builder -c.npmRebuild=false",
+    "test": "vitest run",
+    "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "@ghostgram/shared": "workspace:*",
+    "electron-squirrel-startup": "^1.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.1.2",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.0",
+    "wait-on": "^7.2.0"
   },
   "build": {
     "appId": "com.ghostgram.desktop",
     "productName": "GhostGram",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
     "directories": {
       "output": "dist"
     },
     "files": [
       "out/**/*",
-      "../app/dist/**/*"
+      "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "dir",
+      "icon": "assets/icon.png"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dir",
+      "icon": "assets/icon.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "dir",
+      "icon": "assets/icon.png"
     }
   }
 }
